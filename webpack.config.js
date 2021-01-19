@@ -12,18 +12,33 @@ let config = {
         filename: 'main.js'
     },
     resolve: {
-        extensions: ['.js', '.vue']
+        extensions: ['.js', '.vue', '.css']
     },
     module: { // loader list
         rules: [
             { // resolve .js file with babel
                 test: /\.js$/,
-                loader: 'babel-loader'
+                use: 'babel-loader'
             },
             { // resolve .vue file with vue-loader
                 test: /\.vue$/,
-                loader: 'vue-loader'
+                use: 'vue-loader'
             },
+             {
+              test: /\.css$/,
+              loader: [
+                'style-loader',
+                'css-loader'
+              ]
+            },
+            { // resolve stylus file with stylus-loader then css-loader then vue-loader
+                test: /\.styl(us)?$/,
+                loader: [
+                    'style-loader',
+                    'css-loader',
+                    'stylus-loader'
+                ]
+            }
         ]
     },
     plugins: [ // Vue and hot module plugin
