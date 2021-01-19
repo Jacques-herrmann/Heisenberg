@@ -2,9 +2,8 @@
   "name": "Heisenberg",
   "version": "1.0.0",
   "description": "A cool Markdown WYSIWYG editor",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "webpack serve --hot"
   },
   "repository": {
     "type": "git",
@@ -18,9 +17,20 @@
   },
   "homepage": "https://github.com/Jacques-herrmann/Heisenberg#readme",
   "devDependencies": {
+    "@babel/core": "^7.12.10",
+    "@babel/preset-env": "^7.12.11",
+    "@webpack-cli/serve": "^1.2.1",
+    "babel-loader": "^8.2.2",
     "cross-env": "^7.0.3",
+    "css-loader": "^5.0.1",
+    "html-webpack-plugin": "^4.5.1",
+    "vue": "^2.6.12",
     "vue-loader": "^15.9.6",
+    "vue-style-loader": "^4.1.2",
     "vue-template-compiler": "^2.6.12",
+    "webpack": "^4.46.0",
+    "webpack-cli": "^4.3.1",
     "webpack-dev-server": "^3.11.2"
-  }
+  },
+  "dependencies": {}
 }
