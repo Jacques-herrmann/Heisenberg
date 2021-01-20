@@ -1,9 +1,22 @@
 <template>
     <div class="MDEditor">
         <div class="MDEditor__controls-bar">
-            <button><i class="mdi mdi-format-title"></i></button>
+            <button class="MDEditor__button">
+                <i class="mdi mdi-format-title" />
+            </button>
         </div>
-        {{ value }}
+        <div
+            :class="'MDEditor__md-block' +
+             (internal.currentItemIndex === index ? ' MDEditor__md-block--selected': '')"
+            v-for="(item, index) in structuredContent"
+            :key="index"
+            @click="ui.selectBlock(index)"
+        >
+            <button class="MDEditor__button MDEditor__button--dragable">
+                <i class="mdi mdi-drag-vertical" />
+            </button>
+            <p class="MDEditor__content" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
+        </div>
     </div>
 </template>
 
@@ -14,70 +27,14 @@
     export default @Component({
         props: {
             value: {
-                type: 'String',
-                value: `
-# Petit éditeur Markdown
-
-![Visuel daccueil](https://img.over-blog-kiwi.com/2/64/72/73/20180516/ob_f05e5c_question-mark-png128.png)
-
-!!! note
-    Si vous voyez ce message, c'est que l'éditeur est en mode démonstration. Cet éditeur est utilisable dans une application Vue via l'utilisation de
-    v-model.
-
-## Ce qui fonctionne
-
-### Affichage des artefacts Markdown
-
-* headers (de 1 à 6)
-* paragraphes simples
-* formats admonition
-* listes non ordonnées
-* images
-* vidéos (via code HTML)
-* citations
-* Formules
-
-### Interactions utilisateur
-
-* Possibilité de modifier les headers, paragraphes, admonition, citation et listes
-* Possibilité d'utiliser la barre d'outils pour passer d'un type de format à un autre (header, paragraphe, etc.)
-* Le Markdown correspondant à l'affichage est généré X milisecondes après une modification et émis via un événement change.
-  Cela permet donc l'utilisation du composant via un v-model.
-
-## Ce qui doit être ajouté
-
-### Affichage des artefacts Markdown
-
-* Tableaux
-* formatage (liens, gras, italique, souligné, barré)
-
-### Interactions utilisateur
-
-* insérer une image
-* modifier une image
-* insérer une vidéo
-* modifier une vidéo
-* insérer une formule
-* modifier une formule
-
-
-## Exemples d'usage
-
-### Vidéo avec légende
-
-<video controls src="http://v2v.cc/~j/theora_testsuite/320x240.ogg">Texte alternatif</video>
-
-> Légende d'un média ou citation
-
-
-### Formule mathématique
-
-$$f(x) = ax +3$$
-
-
-        `
+                type: String,
+                default: ""
+            },
+            editMode: {
+                type: Boolean,
+                default: true
             }
-        }
+        },
     })
 
      class MDEditor extends Vue {
@@ -102,8 +59,35 @@ $$f(x) = ax +3$$
             styles: {},
             /*-------------------------------------------------------------------------------------------*/
             /** MarkDown to structured content array **/
-            parseBlock: () => {},
-            encodeFromMD: () => {},
+            getBlockType: (block) => {
+                let blockType = null;
+                !block.length <=0 ? blockType = 'p': null;
+                !blockType ? blockType = 'undefined': null;
+                return blockType
+            },
+            parseBlock: {
+                paragraph: (md) => {
+                    return {
+                        type: 'p',
+                        content: md,
+                    };
+                }
+            },
+            encodeFromMD: (md) => {
+                const blocks = md.split('\n');
+                let currentBlockType = null;
+                let structuredContent = [];
+
+                console.log(blocks);
+                for (let block of blocks) {
+                    currentBlockType = this.codec.getBlockType(block);
+
+                    if (currentBlockType && currentBlockType === 'p') {
+                        structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.paragraph(block))
+                    }
+                }
+                return structuredContent;
+            },
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
             /** Translate HTML view into markdown **/
@@ -114,8 +98,11 @@ $$f(x) = ax +3$$
          * Everything about user interaction <=> block management including switch, remove, type change
          **/
         ui = {
-            deleteItemAt: () => {},
-            moveItemAt: () => {},
+            selectBlock: (index) => {
+                this.internal.currentItemIndex = index
+            },
+            deleteBlockAt: () => {},
+            moveBlock: () => {},
 
             /** Handling keypress event and respective behaviors functions **/
             keyPressed: () => {},
@@ -158,33 +145,54 @@ $$f(x) = ax +3$$
             storeState: () => {},
             undoState: () => {},
             redoState: () => {},
+        };
+
+        mounted() {
+            this.structuredContent = this.codec.encodeFromMD(this.value);
         }
     }
 </script>
-
 <style lang="stylus">
 .MDEditor
-    height 1000px
     width 1200px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
     &__controls-bar
-        height 46px
+        height 40px
         background #eee
         position -webkit-sticky
         position sticky
         text-align left
         border-bottom 1px solid #ccc
-        & button
-            background transparent
-            border-color transparent
-            font-size 0.7em
-            font-weight normal
-            height 46px
-            padding 12px 8px
-            color #888
-            transition all 0.3s ease
-            & i
-                font-size 2em
+    &__button
+        background transparent
+        border-color transparent
+        font-weight normal
+        height 36px
+        padding 8px
+        color #888
+        cursor pointer
+        transition all 0.3s ease
+        & i
+            font-size 1.2em
+        &--dragable
+            cursor grab
+    &__md-block
+        display flex
+        align-items center
+        justify-content flex-start
+        &--selected
+            background-color #F8F8F8
+        &:hover
+            background-color #F8F8F8
+    &__content
+        flex-grow 2
+        outline none
+        cursor pointer
+    & p
+        padding 8px
+        margin 0
+
+
 
 </style>

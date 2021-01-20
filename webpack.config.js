@@ -14,6 +14,9 @@ let config = {
     resolve: {
         extensions: ['.mjs', '.js', '.vue', '.css']
     },
+    // devServer: {
+	//     noInfo: true, // Hide runing informations from terminal
+    // },
     module: { // loader list
         rules: [
             { // resolve .js file with babel
