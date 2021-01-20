@@ -12,7 +12,10 @@ let config = {
         filename: 'main.js'
     },
     resolve: {
-        extensions: ['.mjs', '.js', '.vue', '.css']
+        extensions: ['.mjs', '.js', '.vue', '.css'],
+        alias: {
+            '@': path.resolve('src')
+        }
     },
     // devServer: {
 	//     noInfo: true, // Hide runing informations from terminal
