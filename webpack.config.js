@@ -12,12 +12,12 @@ let config = {
         filename: 'main.js'
     },
     resolve: {
-        extensions: ['.js', '.vue', '.css']
+        extensions: ['.mjs', '.js', '.vue', '.css']
     },
     module: { // loader list
         rules: [
             { // resolve .js file with babel
-                test: /\.js$/,
+                test: /\.m?js$/,
                 use: 'babel-loader'
             },
             { // resolve .vue file with vue-loader
