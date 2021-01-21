@@ -27,7 +27,7 @@
 
 <script>
     import Vue from 'vue'
-    import Component from 'vue-class-component'
+    import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
     import { uuidv4 } from '@/lib/generators.js'
 
@@ -44,7 +44,7 @@
         },
         components: {
             draggable,
-        }
+        },
     })
 
      class MDEditor extends Vue {
@@ -89,11 +89,12 @@
                 selection.removeAllRanges();
                 selection.addRange(range);
             },
+            /*-------------------------------------------------------------------------------------------*/
             updateContent: (event) => {
                 this.structuredContent[this.internal.currentItemIndex].content = event.target.innerText;
-                this.events.input();
             },
         };
+
         /**
          * Everything about encoding/decoding markdown to array including methods, regex, etc.
          **/
@@ -105,10 +106,7 @@
             /*-------------------------------------------------------------------------------------------*/
             /** MarkDown to structured content array **/
             getBlockType: (block) => {
-                let blockType = null;
-                !block.length <=0 ? blockType = 'p': null;
-                !blockType ? blockType = 'undefined': null;
-                return blockType
+                return 'p'
             },
             parseBlock: {
                 paragraph: (md) => {
@@ -123,8 +121,7 @@
                 const blocks = md.split('\n');
                 let currentBlockType = null;
                 let structuredContent = [];
-
-                console.log(blocks);
+                
                 for (let block of blocks) {
                     currentBlockType = this.codec.getBlockType(block);
 
@@ -136,7 +133,7 @@
             },
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
-            /** Translate HTML view into markdown **/
+            /** Translate structuredContent Array into markdown **/
             decodeMDFrom: () => {
                 let output = '';
                 for (const block of this.structuredContent) {
@@ -160,12 +157,11 @@
             /** Handling keyup event and respective behaviors functions **/
             handleKeyDown: (event) => {
                 const preventKeys = ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab', 'BackSpace'];
-                console.log(event);
                 if (event && event instanceof KeyboardEvent) {
                     if (event.key && preventKeys.indexOf(event.key) !== -1) event.preventDefault();
                     switch (event.key) {
                         case 'Enter':
-                            this.ui.behaviors.onEnter();
+                            this.ui.behaviors.onEnter(event);
                             break;
                         case 'Delete':
                             this.ui.behaviors.onDelete();
@@ -188,7 +184,20 @@
                 }
             },
             behaviors: {
-                onEnter: () => {},
+                onEnter: (event) => { /** Create a new block containing after caret content of current block **/
+                    const caretPosition = this.internal._getCaretPosition(event.target);
+                    const beforeCaretContent = event.target.innerText.substr(0, caretPosition);
+                    const afterCaretContent = event.target.innerText.substr(caretPosition);
+
+                    this.structuredContent[this.internal.currentItemIndex].content = beforeCaretContent;
+                    this.structuredContent.splice(this.internal.currentItemIndex + 1, 0, ...this.codec.encodeFromMD(afterCaretContent));
+                    this.internal.currentItemIndex ++;
+                    this.$nextTick(() => {
+                        /** Here we are waiting the DOM to rerender the new block before position caret on it**/
+                        const newBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
+                        this.internal._setCaretPosition(newBlock);
+                    })
+                },
                 onTab: () => {},
                 onBackSpace: () => {},
                 onDelete: () => {},
@@ -202,13 +211,13 @@
                     switch (event.key) {
                         case 'ArrowUp':
                             if (precedentBlock) {
-                                this.internal.currentItemIndex -= 1;
+                                this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, caretPosition);
                             }
                             break;
                         case 'ArrowDown':
                             if (nextBlock) {
-                                this.internal.currentItemIndex += 1;
+                                this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock, caretPosition);
                             }
                             break;
@@ -216,7 +225,7 @@
                             if (!caretPosition && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
                                 event.preventDefault();
                                 const precedentTextLength = precedentBlock.childNodes[0].length
-                                this.internal.currentItemIndex -= 1;
+                                this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
                             break;
@@ -224,7 +233,7 @@
                             const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
                             if (caretPosition >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
                                 event.preventDefault();
-                                this.internal.currentItemIndex += 1;
+                                this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock);
                             }
                             break;
@@ -240,6 +249,7 @@
                 this.internal.drag = false;
             },
         };
+
         /**
          * Everything about shortcut
          **/
@@ -250,6 +260,8 @@
          **/
         importing = {
             onPaste: () => {},
+            wordToMD: () => {},
+            htmlToMD: () => {},
             importMedia: () => {},
         };
 
@@ -263,7 +275,6 @@
             input: () => {
                 this.$emit('input', this.codec.decodeMDFrom());
             },
-            autoSave: () => {}
         };
 
         /**
@@ -278,6 +289,10 @@
 
         mounted() {
             this.structuredContent.push(...this.codec.encodeFromMD(this.value)); /** Push allow us to not replace structuredContent value **/
+        }
+        @Watch('structuredContent', ({immediate: true, deep: true}))
+        function() {
+            this.events.input();
         }
     }
 </script>

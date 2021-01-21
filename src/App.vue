@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor v-model="md" @input="print(md)"></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 
