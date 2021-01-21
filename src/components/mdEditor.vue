@@ -91,7 +91,11 @@
             },
             /*-------------------------------------------------------------------------------------------*/
             updateContent: (event) => {
+                const caretPosition = this.internal._getCaretPosition(event.target);
                 this.structuredContent[this.internal.currentItemIndex].content = event.target.innerText;
+                this.$nextTick(() => {
+                    this.internal._setCaretPosition(event.target, caretPosition);
+                })
             },
         };
 
@@ -121,7 +125,7 @@
                 const blocks = md.split('\n');
                 let currentBlockType = null;
                 let structuredContent = [];
-                
+
                 for (let block of blocks) {
                     currentBlockType = this.codec.getBlockType(block);
 
@@ -156,7 +160,8 @@
 
             /** Handling keyup event and respective behaviors functions **/
             handleKeyDown: (event) => {
-                const preventKeys = ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab', 'BackSpace'];
+                console.log(event.key);
+                const preventKeys = ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab'];
                 if (event && event instanceof KeyboardEvent) {
                     if (event.key && preventKeys.indexOf(event.key) !== -1) event.preventDefault();
                     switch (event.key) {
@@ -175,8 +180,8 @@
                         case 'Tab':
                             this.ui.behaviors.onTab();
                             break;
-                        case 'BackSpace':
-                            this.ui.behaviors.onBackSpace();
+                        case 'Backspace':
+                            this.ui.behaviors.onBackspace(event);
                             break;
                         default:
                             this.ui.behaviors.onUnHandle();
@@ -196,11 +201,29 @@
                         /** Here we are waiting the DOM to rerender the new block before position caret on it**/
                         const newBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                         this.internal._setCaretPosition(newBlock);
-                    })
+                    });
                 },
                 onTab: () => {},
-                onBackSpace: () => {},
-                onDelete: () => {},
+                onBackspace: (event) => {/** Fusion current line with the precedent one if caretPosition === 0 **/
+                    const caretPosition = this.internal._getCaretPosition(event.target);
+                    const currentBlockContent = event.target.innerText.substr(caretPosition);
+                    const precedentBlock = this.internal.currentItemIndex ?
+                        this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
+                    const precedentTextLength = precedentBlock ? precedentBlock.childNodes[0].length: 0;
+
+                    if (!caretPosition && precedentBlock) {
+                        event.preventDefault();
+                        this.structuredContent[this.internal.currentItemIndex - 1].content += currentBlockContent;
+                        this.structuredContent.splice(this.internal.currentItemIndex, 1);
+                        this.internal.currentItemIndex--;
+                        this.$nextTick(() => {
+                            this.internal._setCaretPosition(precedentBlock, precedentTextLength);
+                        })
+                    }
+                },
+                onDelete: () => {
+
+                },
                 onArrows: (event) => {
                     const caretPosition = this.internal._getCaretPosition(event.target);
                     const precedentBlock = this.internal.currentItemIndex ?
@@ -224,7 +247,7 @@
                         case 'ArrowLeft':
                             if (!caretPosition && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
                                 event.preventDefault();
-                                const precedentTextLength = precedentBlock.childNodes[0].length
+                                const precedentTextLength = precedentBlock.childNodes[0].length;
                                 this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
