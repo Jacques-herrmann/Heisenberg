@@ -5,7 +5,7 @@
                 <i class="mdi mdi-format-title" />
             </button>
         </div>
-        <draggable v-model="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">
+        <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">
             <transition-group type="transition" :name="'flip-list'">
                 <div
                     :class="'MDEditor__md-block' +
@@ -14,10 +14,9 @@
                     :key="item.id"
                     @click="ui.selectBlock(index)"
                 >
-                    <button class="MDEditor__button MDEditor__button--dragable">
-                        <i class="mdi mdi-drag-vertical" />
-                    </button>
+                    <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
                     <p class="MDEditor__content" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
+                    <button class="MDEditor__button MDEditor__button--delete" @click="ui.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
         </draggable>
@@ -110,10 +109,12 @@
          **/
         ui = {
             selectBlock: (index) => {
-                this.internal.currentItemIndex = index
+                this.internal.currentItemIndex = index;
             },
-            deleteBlockAt: () => {},
-            moveBlock: () => {},
+            deleteBlockAt: (index) => {
+                console.log(index);
+                this.structuredContent.splice(index, 1);
+            },
 
             /** Handling keypress event and respective behaviors functions **/
             keyPressed: () => {},
@@ -151,7 +152,9 @@
             /** Input events => the v-model has changed
              * Return the current view translate into markdown
              **/
-            input: () => {},
+            input: () => {
+                this.$emit('input', this.codec.decodeMDFrom());
+            },
             autoSave: () => {}
         };
 
@@ -166,7 +169,7 @@
         };
 
         mounted() {
-            this.structuredContent = this.codec.encodeFromMD(this.value);
+            this.structuredContent.push(...this.codec.encodeFromMD(this.value)); /** Push allow us to not replace structuredContent value **/
         }
     }
 </script>
@@ -189,12 +192,20 @@
         height 36px
         padding 8px
         color #888
-        cursor pointer
         transition all 0.3s ease
         & i
             font-size 1.2em
+            opacity 0
+
         &--dragable
-            cursor grab
+            cursor move
+
+        &--delete
+            cursor pointer
+
+        &:hover
+            color #333
+
     &__md-block
         display flex
         align-items center
@@ -203,13 +214,20 @@
             background-color #F8F8F8
         &:hover
             background-color #F8F8F8
+            & i
+                opacity 1
+
+    /** Content type style **/
     &__content
         flex-grow 2
-        outline none
-        cursor pointer
+
     & p
         padding 8px
         margin 0
+
+    /** Remove default outline **/
+    & *
+        outline none
 
 /** Drag & Drop animation **/
 .flip-list-move
