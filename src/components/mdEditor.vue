@@ -13,9 +13,10 @@
                     v-for="(item, index) in structuredContent"
                     :key="item.id"
                     @click="ui.selectBlock(index)"
+                    @keydown="ui.handleKeyDown($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
+                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
                     <button class="MDEditor__button MDEditor__button--delete" @click="ui.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -55,8 +56,39 @@
             caretPos: 0,
             drag: false,
             /*-------------------------------------------------------------------------------------------*/
-            _getCaretPosition: () => {},
-            _setCaretPosition: () => {}
+            _getCaretPosition: (block) => {
+                let caretPos = 0,
+                sel, range;
+                if (window.getSelection) {
+                    sel = window.getSelection();
+                    if (sel.rangeCount) {
+                        range = sel.getRangeAt(0);
+                        if (range.commonAncestorContainer.parentNode === block) {
+                            caretPos = range.endOffset;
+                        }
+                    }
+                }
+                else if (document.selection && document.selection.createRange) {
+                    range = document.selection.createRange();
+                    if (range.parentElement() === block) {
+                        let tempEl = document.createElement("span");
+                        block.insertBefore(tempEl, block.firstChild);
+                        let tempRange = range.duplicate();
+                        tempRange.moveToElementText(tempEl);
+                        tempRange.setEndPoint("EndToEnd", range);
+                        caretPos = tempRange.text.length;
+                    }
+                }
+                return caretPos;
+            },
+            _setCaretPosition: (block, position=0) => {
+                let selection = window.getSelection();
+                let range = document.createRange();
+                range.setStart(block.childNodes[0], Math.min(position, block.childNodes[0].length));
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
         };
         /**
          * Everything about encoding/decoding markdown to array including methods, regex, etc.
@@ -112,18 +144,78 @@
                 this.internal.currentItemIndex = index;
             },
             deleteBlockAt: (index) => {
-                console.log(index);
                 this.structuredContent.splice(index, 1);
             },
 
-            /** Handling keypress event and respective behaviors functions **/
-            keyPressed: () => {},
-            onEnter: () => {},
-            onTab: () => {},
-            onBackSpace: () => {},
-            onDelete: () => {},
-            onArrows: () => {},
-            onUnHandle: () => {},
+            /** Handling keyup event and respective behaviors functions **/
+            handleKeyDown: (event) => {
+                const preventKeys = ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab', 'BackSpace'];
+                console.log(event);
+                if (event && event instanceof KeyboardEvent) {
+                    if (event.key && preventKeys.indexOf(event.key) !== -1) event.preventDefault();
+                    switch (event.key) {
+                        case 'Enter':
+                            this.ui.behaviors.onEnter();
+                            break;
+                        case 'Delete':
+                            this.ui.behaviors.onDelete();
+                            break;
+                        case 'ArrowUp':
+                        case 'ArrowDown':
+                        case 'ArrowRight':
+                        case 'ArrowLeft':
+                            this.ui.behaviors.onArrows(event);
+                            break;
+                        case 'Tab':
+                            this.ui.behaviors.onTab();
+                            break;
+                        case 'BackSpace':
+                            this.ui.behaviors.onBackSpace();
+                            break;
+                        default:
+                            this.ui.behaviors.onUnHandle();
+                    }
+                }
+            },
+            behaviors: {
+                onEnter: () => {},
+                onTab: () => {},
+                onBackSpace: () => {},
+                onDelete: () => {},
+                onArrows: (event) => {
+                    const caretPosition = this.internal._getCaretPosition(event.target);
+                    const precedentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0];
+                    const nextBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0];
+
+                    switch (event.key) {
+                        case 'ArrowUp':
+                            this.internal.currentItemIndex -= 1;
+                            this.internal._setCaretPosition(precedentBlock, caretPosition);
+                            break;
+                        case 'ArrowDown':
+                            this.internal.currentItemIndex += 1;
+                            this.internal._setCaretPosition(nextBlock, caretPosition);
+                            break;
+                        case 'ArrowLeft':
+                            if (!caretPosition) { /** Change block only if caret is in the beginning of the block**/
+                                event.preventDefault();
+                                const precedentTextLength = precedentBlock.childNodes[0].length
+                                this.internal.currentItemIndex -= 1;
+                                this.internal._setCaretPosition(precedentBlock, precedentTextLength);
+                            }
+                            break;
+                        case 'ArrowRight':
+                            const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
+                            if (caretPosition >= currentTextLength) { /** Change block only if caret is in the end of the block**/
+                                event.preventDefault();
+                                this.internal.currentItemIndex += 1;
+                                this.internal._setCaretPosition(nextBlock);
+                            }
+                            break;
+                    }
+                },
+                onUnHandle: () => {},
+            },
             /** Drag & Drop interaction **/
             onDrag: () => {
                 this.internal.drag = true;
@@ -175,7 +267,7 @@
 </script>
 <style lang="stylus">
 .MDEditor
-    width 1200px
+    width 800px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
     &__controls-bar
