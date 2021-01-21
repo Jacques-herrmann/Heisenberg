@@ -13,6 +13,7 @@
                     v-for="(item, index) in structuredContent"
                     :key="item.id"
                     @click="ui.selectBlock(index)"
+                    @input="internal.updateContent($event)"
                     @keydown="ui.handleKeyDown($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
@@ -53,7 +54,6 @@
          **/
         internal = {
             currentItemIndex: 1,
-            caretPos: 0,
             drag: false,
             /*-------------------------------------------------------------------------------------------*/
             _getCaretPosition: (block) => {
@@ -88,7 +88,11 @@
                 range.collapse(true);
                 selection.removeAllRanges();
                 selection.addRange(range);
-            }
+            },
+            updateContent: (event) => {
+                this.structuredContent[this.internal.currentItemIndex].content = event.target.innerText;
+                this.events.input();
+            },
         };
         /**
          * Everything about encoding/decoding markdown to array including methods, regex, etc.
@@ -133,7 +137,13 @@
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
             /** Translate HTML view into markdown **/
-            decodeMDFrom: () => {},
+            decodeMDFrom: () => {
+                let output = '';
+                for (const block of this.structuredContent) {
+                    if (block.type === 'p') output += block.content + '\n'
+                }
+                return output;
+            },
         };
 
         /**
@@ -184,20 +194,26 @@
                 onDelete: () => {},
                 onArrows: (event) => {
                     const caretPosition = this.internal._getCaretPosition(event.target);
-                    const precedentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0];
-                    const nextBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0];
+                    const precedentBlock = this.internal.currentItemIndex ?
+                        this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
+                    const nextBlock = this.internal.currentItemIndex < this.structuredContent.length - 1 ?
+                        this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
 
                     switch (event.key) {
                         case 'ArrowUp':
-                            this.internal.currentItemIndex -= 1;
-                            this.internal._setCaretPosition(precedentBlock, caretPosition);
+                            if (precedentBlock) {
+                                this.internal.currentItemIndex -= 1;
+                                this.internal._setCaretPosition(precedentBlock, caretPosition);
+                            }
                             break;
                         case 'ArrowDown':
-                            this.internal.currentItemIndex += 1;
-                            this.internal._setCaretPosition(nextBlock, caretPosition);
+                            if (nextBlock) {
+                                this.internal.currentItemIndex += 1;
+                                this.internal._setCaretPosition(nextBlock, caretPosition);
+                            }
                             break;
                         case 'ArrowLeft':
-                            if (!caretPosition) { /** Change block only if caret is in the beginning of the block**/
+                            if (!caretPosition && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
                                 event.preventDefault();
                                 const precedentTextLength = precedentBlock.childNodes[0].length
                                 this.internal.currentItemIndex -= 1;
@@ -206,7 +222,7 @@
                             break;
                         case 'ArrowRight':
                             const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
-                            if (caretPosition >= currentTextLength) { /** Change block only if caret is in the end of the block**/
+                            if (caretPosition >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
                                 event.preventDefault();
                                 this.internal.currentItemIndex += 1;
                                 this.internal._setCaretPosition(nextBlock);

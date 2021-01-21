@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor v-model="md"></md-editor>
+        <md-editor v-model="md" @input="print(md)"></md-editor>
     </div>
 </template>
 
@@ -76,7 +76,10 @@
 $$f(x) = ax +3$$
 
 
-        `
+        `;
+        print(text) {
+            console.log(text);
+        }
     }
 </script>
 <style>
