@@ -5,8 +5,8 @@
                 <i class="mdi mdi-format-title" />
             </button>
         </div>
-        <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">
-            <transition-group type="transition" :name="'flip-list'">
+<!--        <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">-->
+<!--            <transition-group type="transition" :name="'flip-list'">-->
                 <div
                     :class="'MDEditor__md-block' +
                      (internal.currentItemIndex === index ? ' MDEditor__md-block--selected': '')"
@@ -20,8 +20,8 @@
                     <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
                     <button class="MDEditor__button MDEditor__button--delete" @click="ui.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
-            </transition-group>
-        </draggable>
+<!--            </transition-group>-->
+<!--        </draggable>-->
     </div>
 </template>
 
@@ -35,7 +35,7 @@
         props: {
             value: {
                 type: String,
-                default: ""
+                default: "Je suis un paragraphe !"
             },
             editMode: {
                 type: Boolean,
