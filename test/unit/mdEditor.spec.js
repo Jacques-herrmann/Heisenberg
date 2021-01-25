@@ -20,10 +20,10 @@ describe('MDEditor', () => {
         })
     });
     // Multiline Markdown text
-    it('should encode HTML from Markdown', done => {
+    xit('should encode HTML from Markdown', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
-                'value': '# Je suis un paragraphe !'
+                'value': 'Je suis un paragraphe !'
             }
         });
 
@@ -33,7 +33,7 @@ describe('MDEditor', () => {
             done();
         })
     });
-    it('should decode Markdown from HTML', done => {
+    xit('should decode Markdown from HTML', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -48,7 +48,7 @@ describe('MDEditor', () => {
 });
 
 describe('MDEditor.codec', () => {
-    it('should correctly define Markdown block type', done => {
+    xit('should correctly define Markdown block type', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -80,21 +80,20 @@ describe('MDEditor.codec', () => {
             done();
         })
     });
-    it('should decode Markdown from <p>', done => {
-        let wrapper = mount(MDEditor, {
-            propsData: {
-                'value': 'Je suis un paragraphe !'
-            }
-        });
+    it('should decode Markdown from <p>', () => {
+        let wrapper = mount(MDEditor);
+        let structuredContent = [{
+            id: '',
+            type: 'p',
+            content: 'Je suis un paragraphe !'
+        }];
+        const md = wrapper.vm.codec.decodeMDFrom(structuredContent);
 
-        Vue.nextTick(() => {
-            expect(true).to.be.equal(true);
-            done();
-        })
+        expect(md).to.be.equal('Je suis un paragraphe !')
     });
 
     // H1
-    it('should encode <h1> from Markdown', done => {
+    xit('should encode <h1> from Markdown', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': '# Je suis un paragraphe !'
@@ -107,7 +106,7 @@ describe('MDEditor.codec', () => {
             done();
         })
     });
-    it('should decode Markdown from <h1>', done => {
+    xit('should decode Markdown from <h1>', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -123,7 +122,7 @@ describe('MDEditor.codec', () => {
 });
 
 describe('MDEditor.ui', () => {
-    it('should allow user to add text into a block', done => {
+    xit('should allow user to add text into a block', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -135,7 +134,7 @@ describe('MDEditor.ui', () => {
             done();
         })
     });
-    it('should allow user to change block type', done => {
+    xit('should allow user to change block type', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -210,7 +209,7 @@ describe('MDEditor.ui', () => {
 });
 
 describe('MDEditor.importing', () => {
-    it('should allow user to paste Word formatted text', done => {
+    xit('should allow user to paste Word formatted text', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -222,7 +221,7 @@ describe('MDEditor.importing', () => {
             done();
         })
     });
-    it('should allow user to paste HTML formatted text', done => {
+    xit('should allow user to paste HTML formatted text', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -237,7 +236,7 @@ describe('MDEditor.importing', () => {
 })
 
 describe('MDEditor.history', () => {
-    it('should allow user to undo', done => {
+    xit('should allow user to undo', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -249,7 +248,7 @@ describe('MDEditor.history', () => {
             done();
         })
     });
-    it('should allow user to redo', done => {
+    xit('should allow user to redo', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'

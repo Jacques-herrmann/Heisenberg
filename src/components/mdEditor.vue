@@ -138,10 +138,10 @@
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
             /** Translate structuredContent Array into markdown **/
-            decodeMDFrom: () => {
+            decodeMDFrom: (structuredContent) => {
                 let output = '';
-                for (const block of this.structuredContent) {
-                    if (block.type === 'p') output += block.content + '\n'
+                for (const block of structuredContent) {
+                    if (block.type === 'p') output += block.content
                 }
                 return output;
             },
@@ -296,7 +296,7 @@
              * Return the current view translate into markdown
              **/
             input: () => {
-                this.$emit('input', this.codec.decodeMDFrom());
+                this.$emit('input', this.codec.decodeMDFrom(this.structuredContent));
             },
         };
 
