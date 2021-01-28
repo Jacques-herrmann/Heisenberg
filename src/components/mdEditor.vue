@@ -12,13 +12,22 @@
                      (internal.currentItemIndex === index ? ' MDEditor__md-block--selected': '')"
                     v-for="(item, index) in structuredContent"
                     :key="item.id"
-                    @click="ui.selectBlock(index)"
-                    @input="internal.updateContent($event)"
+                    @click="blocks.selectBlock(index)"
                     @keydown="ui.handleKeyDown($event)"
+                    v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
-                    <button class="MDEditor__button MDEditor__button--delete" @click="ui.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
+                    <pre class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</pre>
+                    <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
+                </div>
+                <div
+                    v-if="!structuredContent.length"
+                    class="MDEditor__no-content"
+                >
+                    <img :src="internal.BLANK_DOC" alt="Blank document">
+                    <span class="MDEditor__no-content-title">Aucun contenu !</span>
+                    <span class="MDEditor__no-content-text">Ajouter un block et commencer à travailler</span>
+                    <button @click="blocks.addBlock(0)">Ajouter un block</button>
                 </div>
 <!--            </transition-group>-->
 <!--        </draggable>-->
@@ -30,12 +39,13 @@
     import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
     import { uuidv4 } from '@/lib/generators.js'
+    import blank from '@/assets/blank-document.png'
 
     export default @Component({
         props: {
             value: {
                 type: String,
-                default: "Je suis un paragraphe !"
+                default: ""
             },
             editMode: {
                 type: Boolean,
@@ -49,12 +59,14 @@
 
      class MDEditor extends Vue {
         structuredContent = [];
+
         /**
          * Everything about internal states including constant, getters
          **/
         internal = {
             currentItemIndex: 1,
             drag: false,
+            BLANK_DOC: blank,
             /*-------------------------------------------------------------------------------------------*/
             _getCaretPosition: (block) => {
                 let caretPos = 0,
@@ -82,21 +94,16 @@
                 return caretPos;
             },
             _setCaretPosition: (block, position=0) => {
-                let selection = window.getSelection();
-                let range = document.createRange();
-                range.setStart(block.childNodes[0], Math.min(position, block.childNodes[0].length));
-                range.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            },
-            /*-------------------------------------------------------------------------------------------*/
-            updateContent: (event) => {
-                const caretPosition = this.internal._getCaretPosition(event.target);
-                this.structuredContent[this.internal.currentItemIndex].content = event.target.innerText;
                 this.$nextTick(() => {
-                    this.internal._setCaretPosition(event.target, caretPosition);
+                    let selection = window.getSelection();
+                    let range = document.createRange();
+                    range.setStart(block.childNodes[0], Math.min(position, block.childNodes[0].length));
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                 })
             },
+            /*-------------------------------------------------------------------------------------------*/
         };
 
         /**
@@ -141,7 +148,7 @@
             decodeMDFrom: (structuredContent) => {
                 let output = '';
                 for (const block of structuredContent) {
-                    if (block.type === 'p') output += block.content
+                    if (block.type === 'p') output += block.content + '\n'
                 }
                 return output;
             },
@@ -151,37 +158,46 @@
          * Everything about user interaction <=> block management including switch, remove, type change
          **/
         ui = {
-            selectBlock: (index) => {
-                this.internal.currentItemIndex = index;
+            /** Handling key event, event and respective behaviors functions **/
+            keyboard: {
+                arrowKeys: ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'],
+                notCharKeys: ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab', 'Backspace', 'Insert', 'Shift',
+                    'Control', 'Alt', 'Meta', 'CapsLock', 'Escape', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8',
+                    'F9', 'F10', 'F11', 'F12', 'AudioVolumeMute', 'AudioVolumeDown', 'AudioVolumeUp', 'AltGraph',
+                    'ContextMenu', 'NumLock', 'Home', 'PageUp', 'End', 'PageDown', 'Clear', 'Dead'],
+                precedentKey: '',
             },
-            deleteBlockAt: (index) => {
-                this.structuredContent.splice(index, 1);
-            },
-
-            /** Handling keyup event and respective behaviors functions **/
             handleKeyDown: (event) => {
-                console.log(event.key);
-                const preventKeys = ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab'];
+                /** Handle keyboard event that doesn't trigger an InputEvent **/
                 if (event && event instanceof KeyboardEvent) {
-                    if (event.key && preventKeys.indexOf(event.key) !== -1) event.preventDefault();
-                    switch (event.key) {
-                        case 'Enter':
-                            this.ui.behaviors.onEnter(event);
+                    if (this.ui.keyboard.arrowKeys.indexOf(event.key) !== -1) {
+                        event.preventDefault();
+                        this.ui.behaviors.onArrows(event.target, event.key);
+                    }
+                    else if (this.ui.keyboard.precedentKey !== 'AltGraph' && !event.altKey && !event.ctrlKey && !event.metaKey &&
+                        this.ui.keyboard.notCharKeys.indexOf(event.key) === -1){
+                        event.preventDefault();
+                        this.ui.behaviors.onCharacter(event.target, event.key);
+                    }
+                    this.ui.keyboard.precedentKey = event.key
+                }
+            },
+            handleInput: (event) => {
+                //** Handle the before input event to control his behaviour **/
+                event.preventDefault();
+                if (event && event instanceof InputEvent) {
+                    switch (event.inputType) {
+                        case 'insertText':
+                            this.ui.behaviors.onCharacter(event.target, event.data);
+                        break;
+                            case 'insertParagraph':
+                            this.ui.behaviors.onEnter(event.target);
                             break;
-                        case 'Delete':
-                            this.ui.behaviors.onDelete();
+                        case 'deleteContentForward':
+                            this.ui.behaviors.onDelete(event.target);
                             break;
-                        case 'ArrowUp':
-                        case 'ArrowDown':
-                        case 'ArrowRight':
-                        case 'ArrowLeft':
-                            this.ui.behaviors.onArrows(event);
-                            break;
-                        case 'Tab':
-                            this.ui.behaviors.onTab();
-                            break;
-                        case 'Backspace':
-                            this.ui.behaviors.onBackspace(event);
+                        case 'deleteContentBackward':
+                            this.ui.behaviors.onBackspace(event.target);
                             break;
                         default:
                             this.ui.behaviors.onUnHandle();
@@ -189,13 +205,10 @@
                 }
             },
             behaviors: {
-                onEnter: (event) => { /** Create a new block containing after caret content of current block **/
-                    const caretPosition = this.internal._getCaretPosition(event.target);
-                    const beforeCaretContent = event.target.innerText.substr(0, caretPosition);
-                    const afterCaretContent = event.target.innerText.substr(caretPosition);
+                onEnter: (target) => { /** Create a new block containing after caret content of current block **/
+                    const caretPosition = this.internal._getCaretPosition(target);
 
-                    this.structuredContent[this.internal.currentItemIndex].content = beforeCaretContent;
-                    this.structuredContent.splice(this.internal.currentItemIndex + 1, 0, ...this.codec.encodeFromMD(afterCaretContent));
+                    this.blocks.splitBlock(this.internal.currentItemIndex, caretPosition);
                     this.internal.currentItemIndex ++;
                     this.$nextTick(() => {
                         /** Here we are waiting the DOM to rerender the new block before position caret on it**/
@@ -204,34 +217,45 @@
                     });
                 },
                 onTab: () => {},
-                onBackspace: (event) => {/** Fusion current line with the precedent one if caretPosition === 0 **/
-                    const caretPosition = this.internal._getCaretPosition(event.target);
-                    const currentBlockContent = event.target.innerText.substr(caretPosition);
+                onBackspace: (target) => {
+                    /** Fusion current line with the precedent one if caretPosition === 0 **/
+                    const caretPosition = this.internal._getCaretPosition(target);
                     const precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
                     const precedentTextLength = precedentBlock ? precedentBlock.childNodes[0].length: 0;
 
                     if (!caretPosition && precedentBlock) {
-                        event.preventDefault();
-                        this.structuredContent[this.internal.currentItemIndex - 1].content += currentBlockContent;
-                        this.structuredContent.splice(this.internal.currentItemIndex, 1);
+                        this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex);
                         this.internal.currentItemIndex--;
-                        this.$nextTick(() => {
-                            this.internal._setCaretPosition(precedentBlock, precedentTextLength);
-                        })
+                        this.internal._setCaretPosition(precedentBlock, precedentTextLength);
+                    }
+                     /** else simply remove precedent character **/
+                    else if (caretPosition){
+                        this.blocks.removeAt(this.internal.currentItemIndex, caretPosition);
+                        this.internal._setCaretPosition(target, caretPosition - 1);
                     }
                 },
-                onDelete: () => {
+                onDelete: (target) => {
+                    const caretPosition = this.internal._getCaretPosition(target);
+                    const followingBlock = this.internal.currentItemIndex + 1 < this.structuredContent.length ?
+                        this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
+                    const caretAtEnd = caretPosition === this.structuredContent[this.internal.currentItemIndex].content.length;
 
+                    /** Fusion current line with the following one if caret at the end of the line **/
+                    if (followingBlock && caretAtEnd) { this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex + 1); }
+
+                    /** else simply remove next character**/
+                    else { this.blocks.removeAt(this.internal.currentItemIndex, caretPosition + 1); }
+                    this.internal._setCaretPosition(target, caretPosition);
                 },
-                onArrows: (event) => {
-                    const caretPosition = this.internal._getCaretPosition(event.target);
+                onArrows: (target, key) => {
+                    const caretPosition = this.internal._getCaretPosition(target);
                     const precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
                     const nextBlock = this.internal.currentItemIndex < this.structuredContent.length - 1 ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
 
-                    switch (event.key) {
+                    switch (key) {
                         case 'ArrowUp':
                             if (precedentBlock) {
                                 this.internal.currentItemIndex --;
@@ -246,23 +270,28 @@
                             break;
                         case 'ArrowLeft':
                             if (!caretPosition && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
-                                event.preventDefault();
                                 const precedentTextLength = precedentBlock.childNodes[0].length;
                                 this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
+                            else { this.internal._setCaretPosition(target, caretPosition - 1); }
                             break;
                         case 'ArrowRight':
                             const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
                             if (caretPosition >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
-                                event.preventDefault();
                                 this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock);
                             }
+                            else { this.internal._setCaretPosition(target, caretPosition + 1); }
                             break;
                     }
                 },
-                onUnHandle: () => {},
+                onCharacter: (target , key) => {
+                    const caretPosition = this.internal._getCaretPosition(target);
+                    this.blocks.insertAt(this.internal.currentItemIndex, caretPosition, key);
+                    this.internal._setCaretPosition(target, caretPosition + 1);
+                },
+                onUnHandle: (event) => {},
             },
             /** Drag & Drop interaction **/
             onDrag: () => {
@@ -274,9 +303,40 @@
         };
 
         /**
-         * Everything about shortcut
+         * Everything about blocks management
          **/
-        shortcut = {};
+        blocks = {
+            selectBlock: (index) => {
+                this.internal.currentItemIndex = index;
+            },
+            addBlock: (index) => {
+                this.structuredContent.splice(index, 0, this.codec.parseBlock.paragraph(''));
+            },
+            deleteBlockAt: (index) => {
+                this.structuredContent.splice(index, 1);
+            },
+            insertAt: (index, caretPos, char) => {
+                const currentContent = this.structuredContent[index];
+                currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
+                this.structuredContent.splice(index, 1, currentContent);
+            },
+            removeAt: (index, caretPos, length=1) => {
+                const currentContent = this.structuredContent[index];
+                currentContent.content = currentContent.content.slice(0, caretPos - length) + currentContent.content.slice(caretPos);
+                this.structuredContent.splice(index, 1, currentContent);
+            },
+            mergeBlockWithPrecedent: (index) => {
+                this.structuredContent[index - 1].content += this.structuredContent[index].content;
+                this.structuredContent.splice(index, 1);
+            },
+            splitBlock: (index, caretPos) => {
+                const beforeCaretContent = this.structuredContent[index].content.substr(0, caretPos);
+                const afterCaretContent = this.structuredContent[index].content.substr(caretPos);
+                this.structuredContent[index].content.slice(0, caretPos);
+                this.structuredContent.splice(index , 1, ...this.codec.encodeFromMD(beforeCaretContent));
+                this.structuredContent.splice(index + 1, 0, ...this.codec.encodeFromMD(afterCaretContent));
+            },
+        };
 
         /**
          * Everything about importing content, media, formatted text (Work, HTML)
@@ -320,8 +380,17 @@
     }
 </script>
 <style lang="stylus">
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');
+resetButton()
+    background transparent
+    border-color transparent
+    font-weight normal
+*
+    font-family "Rubik"
+
 .MDEditor
     width 800px
+    min-height 1000px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
     &__controls-bar
@@ -332,9 +401,7 @@
         text-align left
         border-bottom 1px solid #ccc
     &__button
-        background transparent
-        border-color transparent
-        font-weight normal
+        resetButton()
         height 36px
         padding 8px
         color #888
@@ -366,7 +433,6 @@
     /** Content type style **/
     &__content
         flex-grow 2
-
     & p
         padding 8px
         margin 0
@@ -374,6 +440,41 @@
     /** Remove default outline **/
     & *
         outline none
+
+    &__no-content
+        width 100%
+        padding 30px 0
+        display flex
+        align-items center
+        flex-direction column
+        & > *
+            margin 5px
+        & > img
+            height 100px
+        & > button
+            resetButton()
+            height 36px
+            border-radius 4px
+            display flex
+            align-items center
+            justify-content center
+            text-transform uppercase
+            font-weight 500
+            background-color #ADC3D1
+            cursor pointer
+            transition all 0.3s ease-in-out
+            &:hover
+                background-color #759CC9
+        &-title
+            font-size 18px
+            font-weight bolder
+            color #333333
+        &-text
+            font-size 14px
+            color #949494
+
+
+
 
 /** Drag & Drop animation **/
 .flip-list-move
