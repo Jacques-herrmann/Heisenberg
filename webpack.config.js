@@ -44,7 +44,15 @@ let config = {
                     'css-loader',
                     'stylus-loader'
                 ]
-            }
+            },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                use: [
+                  {
+                    loader: 'file-loader',
+                  },
+                ],
+              },
         ]
     },
     plugins: [ // Vue and hot module plugin

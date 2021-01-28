@@ -28,6 +28,7 @@
     "cross-env": "^7.0.3",
     "css-loader": "^5.0.1",
     "expect": "^26.6.2",
+    "file-loader": "^6.2.0",
     "geckodriver": "^1.21.1",
     "html-webpack-plugin": "^4.5.1",
     "jsdom": "^16.4.0",
