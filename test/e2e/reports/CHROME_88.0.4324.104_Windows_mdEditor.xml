@@ -1,13 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <testsuites errors="0"
             failures="0"
-            tests="1">
+            tests="3">
 
   <testsuite name="mdEditor"
     errors="0" failures="0" hostname="" id="" package="mdEditor" skipped="0"
-    tests="1" time="1.115" timestamp="">
+    tests="3" time="4.533" timestamp="">
   
-    <testcase name="default e2e tests" classname="mdEditor" time="1.115" assertions="2">
+    <testcase name="should allow user to switch block with arrow key" classname="mdEditor" time="0.7820" assertions="2">
+
+    
+
+    
+    </testcase>
+  
+    <testcase name="should allow user to split block with Enter key" classname="mdEditor" time="0.2490" assertions="2">
+
+    
+
+    
+    </testcase>
+  
+    <testcase name="should allow user to merge block with Backspace key" classname="mdEditor" time="3.502" assertions="5">
+
+    
+
+    
+
+    
 
     
 

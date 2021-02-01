@@ -12,9 +12,11 @@
                      (internal.currentItemIndex === index ? ' MDEditor__md-block--selected': '')"
                     v-for="(item, index) in structuredContent"
                     :key="item.id"
+                    :id="item.id"
                     @click="blocks.selectBlock(index)"
                     @keydown="ui.handleKeyDown($event)"
                     v-on:beforeinput="ui.handleInput($event)"
+                    @mouseup="events.log($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
                     <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
@@ -24,7 +26,7 @@
                     v-if="!structuredContent.length"
                     class="MDEditor__no-content"
                 >
-                    <img :src="internal.BLANK_DOC" alt="Blank document">
+                    <img :src="internal.constants.BLANK_DOC" alt="Blank document">
                     <span class="MDEditor__no-content-title">Aucun contenu !</span>
                     <span class="MDEditor__no-content-text">Ajouter un block et commencer à travailler</span>
                     <button @click="blocks.addBlock(0)">Ajouter un block</button>
@@ -45,7 +47,7 @@
         props: {
             value: {
                 type: String,
-                default: ""
+                default: "Hello World !\nI\'m a cool WYSIWYG markdown Editor\nTry me !"
             },
             editMode: {
                 type: Boolean,
@@ -64,9 +66,13 @@
          * Everything about internal states including constant, getters
          **/
         internal = {
+            constants: {
+                BLANK_DOC: blank,
+            },
             currentItemIndex: 1,
             drag: false,
-            BLANK_DOC: blank,
+            selection: null,
+
             /*-------------------------------------------------------------------------------------------*/
             _getCaretPosition: (block) => {
                 let caretPos = 0,
@@ -104,6 +110,10 @@
                 })
             },
             /*-------------------------------------------------------------------------------------------*/
+            _setSelection: () => {
+                console.log('select');
+                console.log(document.getSelection());
+            },
         };
 
         /**
@@ -184,13 +194,14 @@
             },
             handleInput: (event) => {
                 //** Handle the before input event to control his behaviour **/
+                console.log(event);
                 event.preventDefault();
                 if (event && event instanceof InputEvent) {
                     switch (event.inputType) {
                         case 'insertText':
                             this.ui.behaviors.onCharacter(event.target, event.data);
                         break;
-                            case 'insertParagraph':
+                        case 'insertParagraph':
                             this.ui.behaviors.onEnter(event.target);
                             break;
                         case 'deleteContentForward':
@@ -198,6 +209,13 @@
                             break;
                         case 'deleteContentBackward':
                             this.ui.behaviors.onBackspace(event.target);
+                            break;
+                        // Move Text by selection
+                        case 'deleteByDrag':
+                            this.ui.behaviors.onDragSelection(event);
+                            break;
+                        case 'insertFromDrop':
+                            this.ui.behaviors.onDropSelection(event);
                             break;
                         default:
                             this.ui.behaviors.onUnHandle();
@@ -291,6 +309,24 @@
                     this.blocks.insertAt(this.internal.currentItemIndex, caretPosition, key);
                     this.internal._setCaretPosition(target, caretPosition + 1);
                 },
+                onDragSelection: () => {
+                    const selection = document.getSelection();
+                    const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
+                    const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
+
+                    this.internal.selection = this.blocks.getTextAt(this.internal.currentItemIndex, selectionStart, selectionEnd);
+                    this.blocks.removeAt(this.internal.currentItemIndex, selectionEnd, selectionEnd - selectionStart);
+                },
+                onDropSelection: (event) => {
+                    if (this.internal.selection) {
+                        const caretPos = this.internal._getCaretPosition(event.target);
+                        const index = this.blocks.getBlockIndex(event.currentTarget.id);
+
+                        if (index !== -1) this.blocks.insertAt(index, caretPos, this.internal.selection);
+                        this.internal._setCaretPosition(event.target, caretPos);
+                        this.internal.selection = null;
+                    }
+                },
                 onUnHandle: (event) => {},
             },
             /** Drag & Drop interaction **/
@@ -306,6 +342,14 @@
          * Everything about blocks management
          **/
         blocks = {
+            getBlockIndex: (blockId) => {
+                for (const block of this.structuredContent) {
+                    if (block.id === blockId) {
+                        return this.structuredContent.indexOf(block);
+                    }
+                };
+                return -1
+            },
             selectBlock: (index) => {
                 this.internal.currentItemIndex = index;
             },
@@ -315,12 +359,16 @@
             deleteBlockAt: (index) => {
                 this.structuredContent.splice(index, 1);
             },
+            getTextAt: (index, start, end) => {
+                return this.structuredContent[index].content.slice(start, end);
+            },
             insertAt: (index, caretPos, char) => {
                 const currentContent = this.structuredContent[index];
                 currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
                 this.structuredContent.splice(index, 1, currentContent);
             },
             removeAt: (index, caretPos, length=1) => {
+                /** Remove content before the caret **/
                 const currentContent = this.structuredContent[index];
                 currentContent.content = currentContent.content.slice(0, caretPos - length) + currentContent.content.slice(caretPos);
                 this.structuredContent.splice(index, 1, currentContent);
@@ -358,6 +406,17 @@
             input: () => {
                 this.$emit('input', this.codec.decodeMDFrom(this.structuredContent));
             },
+            log: (event) => {
+                console.log(event);
+            },
+            listeners: {
+                add: () => {
+                    // document.addEventListener('selectionchange', this.internal._setSelection)
+                },
+                remove: () => {
+                    // document.removeEventListener('selectionchange', this.internal._setSelection)
+                }
+            }
         };
 
         /**
@@ -371,7 +430,12 @@
         };
 
         mounted() {
+            this.events.listeners.add();
             this.structuredContent.push(...this.codec.encodeFromMD(this.value)); /** Push allow us to not replace structuredContent value **/
+        }
+
+        destroyed() {
+            this.events.listeners.remove();
         }
 
         @Watch('structuredContent', ({immediate: true, deep: true}))
