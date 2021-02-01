@@ -31,6 +31,7 @@ describe('MDEditor.ui', () => {
             .keys('I\'m a cool WYSIWYG markdown Editor')
             .keys(browser.Keys.ENTER)
             .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
 
         // Select the second block (End of block)
         editor.api.elements('@block', (blocks) => {
@@ -79,6 +80,7 @@ describe('MDEditor.ui', () => {
             .keys('Hello world !')
             .keys(browser.Keys.LEFT_ARROW)
             .keys(browser.Keys.ENTER)
+            .pause(100)
 
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 2);
@@ -103,6 +105,7 @@ describe('MDEditor.ui', () => {
             .keys('Hello world !')
             .keys(browser.Keys.ENTER)
             .keys("I m a cool WYSIWYG markdown Editor")
+            .pause(100)
 
         // Select the first block (End of block)
         editor.api.elements('@block', (blocks) => {
@@ -112,6 +115,7 @@ describe('MDEditor.ui', () => {
         browser
             .keys(browser.Keys.RIGHT_ARROW)
             .keys(browser.Keys.BACK_SPACE)
+            .pause(100)
 
         // Check the result
         editor.api.elements('@block', (blocks) => {
@@ -122,8 +126,224 @@ describe('MDEditor.ui', () => {
         })
     });
 
+    it('should allow to replace selection with a character', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text and replace by a character
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 320, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
+                .mouseButtonUp(0)
+                .keys('A');
+        })
+
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 3);
+            editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Hello world !')
+            });
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown A')
+            });
+            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+            });
+        })
+    });
+
+    it('should allow to replace selection with a \'newline\' character (Enter key)', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text and replace by a character
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 300, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
+                .mouseButtonUp(0)
+                .keys(browser.Keys.ENTER)
+                .pause(100)
+        })
+
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 4);
+            editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Hello world !')
+            });
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+            });
+            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'or')
+            });
+            editor.api.elementIdText(blocks.result.value[3].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+            });
+        })
+    });
+
+    it('should allow to remove selection with the \'Delete\' key', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text and replace by a character
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 320, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
+                .mouseButtonUp(0)
+                .keys(browser.Keys.DELETE);
+        })
+
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 3);
+            editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Hello world !')
+            });
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+            });
+            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+            });
+        })
+    });
+
+    it('should allow to remove selection with the \'BackSpace\' key', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text and replace by a character
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 100, 0)
+                .mouseButtonUp(0)
+                .keys(browser.Keys.BACK_SPACE);
+        })
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 3);
+            editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'Hello world !')
+            });
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'ol WYSIWYG markdown Editor')
+            });
+            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+            });
+        })
+    });
+
+    // xit('should allow user to drag and drop selected text', (browser) => {
+    //     let page = browser.page.mdEditor();
+    //     page.navigate().waitForElementVisible('@app', 5000);
+    //     let editor = page.section.editor;
     //
+    //     // Select the first block
+    //     editor.click('.MDEditor__content');
     //
+    //     // Write something on it
+    //     browser
+    //         .keys('Hello world !')
+    //         .keys(browser.Keys.ENTER)
+    //         .keys('Im a cool WYSIWYG markdown Editor')
+    //         .keys(browser.Keys.ENTER)
+    //         .keys('and i should allow user to switch block with arrow key');
+    //
+    //     // Select Text and replace by a character
+    //     editor.api.elements('@block', (blocks) => {
+    //         browser
+    //             .moveTo(blocks.result.value[1].ELEMENT, 320, 0)
+    //             .pause(1000)
+    //             .mouseButtonDown(0)
+    //             .pause(1000)
+    //             .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
+    //             .pause(1000)
+    //             .mouseButtonUp(0)
+    //             .moveTo(blocks.result.value[1].ELEMENT, 300, 0)
+    //             .mouseButtonDown(0)
+    //             .pause(1000)
+    //             .moveTo(blocks.result.value[2].ELEMENT, 270, 100)
+    //             .mouseButtonUp(0)
+    //         // .pause(1000)
+    //         // .mouseButtonClick(0)
+    //         // .pause(1000)
+    //         browser.elementIdClick(blocks.result.value[2].ELEMENT)
+    //     })
+    //
+    //     editor.api.elements('@block', (blocks) => {
+    //         browser.assert.equal(blocks.result.value.length, 3);
+    //         editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'Hello world !')
+    //         });
+    //         editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+    //         });
+    //         editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+    //         });
+    //     })
+    // })
+
     // xit('should allow user to change block type', (browser) => {
     //     browser
     //         .end();

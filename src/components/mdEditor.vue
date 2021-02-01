@@ -22,17 +22,17 @@
                     <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
-                <div
-                    v-if="!structuredContent.length"
-                    class="MDEditor__no-content"
-                >
-                    <img :src="internal.constants.BLANK_DOC" alt="Blank document">
-                    <span class="MDEditor__no-content-title">Aucun contenu !</span>
-                    <span class="MDEditor__no-content-text">Ajouter un block et commencer à travailler</span>
-                    <button @click="blocks.addBlock(0)">Ajouter un block</button>
-                </div>
             </transition-group>
         </draggable>
+        <div
+            v-if="!structuredContent.length"
+            class="MDEditor__no-content"
+        >
+            <img :src="internal.constants.BLANK_DOC" alt="Blank document">
+            <span class="MDEditor__no-content-title">Aucun contenu !</span>
+            <span class="MDEditor__no-content-text">Ajouter un block et commencer à travailler</span>
+            <button @click="blocks.addBlock(0)">Ajouter un block</button>
+        </div>
     </div>
 </template>
 
@@ -47,7 +47,7 @@
         props: {
             value: {
                 type: String,
-                default: "Hello World !\nI\'m a cool WYSIWYG markdown Editor\nTry me !"
+                default: ''
             },
             editMode: {
                 type: Boolean,
