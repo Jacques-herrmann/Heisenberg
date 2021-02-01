@@ -110,10 +110,6 @@
                 })
             },
             /*-------------------------------------------------------------------------------------------*/
-            _setSelection: () => {
-                console.log('select');
-                console.log(document.getSelection());
-            },
         };
 
         /**
@@ -224,7 +220,8 @@
             },
             behaviors: {
                 onEnter: (target) => { /** Create a new block containing after caret content of current block **/
-                    const caretPosition = this.internal._getCaretPosition(target);
+                    const selectionLength = this.ui.removeSelection();
+                    const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
 
                     this.blocks.splitBlock(this.internal.currentItemIndex, caretPosition);
                     this.internal.currentItemIndex ++;
@@ -249,8 +246,12 @@
                     }
                      /** else simply remove precedent character **/
                     else if (caretPosition){
-                        this.blocks.removeAt(this.internal.currentItemIndex, caretPosition);
-                        this.internal._setCaretPosition(target, caretPosition - 1);
+                        let selectionLength = this.ui.removeSelection();
+                        if (!selectionLength) {
+                            this.blocks.removeAt(this.internal.currentItemIndex, caretPosition);
+                            selectionLength = 1;
+                        }
+                        this.internal._setCaretPosition(target, caretPosition - selectionLength);
                     }
                 },
                 onDelete: (target) => {
@@ -259,12 +260,23 @@
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
                     const caretAtEnd = caretPosition === this.structuredContent[this.internal.currentItemIndex].content.length;
 
-                    /** Fusion current line with the following one if caret at the end of the line **/
-                    if (followingBlock && caretAtEnd) { this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex + 1); }
+                    const selectionLength = this.ui.removeSelection();
+                    if (selectionLength) {
+                        this.internal._setCaretPosition(target, caretPosition - selectionLength);
+                    }
+                    else {
+                        /** Fusion current line with the following one if caret at the end of the line **/
+                        if (followingBlock && caretAtEnd) {
+                            this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex + 1);
+                        }
 
-                    /** else simply remove next character**/
-                    else { this.blocks.removeAt(this.internal.currentItemIndex, caretPosition + 1); }
-                    this.internal._setCaretPosition(target, caretPosition);
+                        /** else simply remove next character**/
+                        else {
+                            this.blocks.removeAt(this.internal.currentItemIndex, caretPosition + 1);
+                        }
+                        this.internal._setCaretPosition(target, caretPosition);
+                    }
+
                 },
                 onArrows: (target, key) => {
                     const caretPosition = this.internal._getCaretPosition(target);
@@ -305,7 +317,8 @@
                     }
                 },
                 onCharacter: (target , key) => {
-                    const caretPosition = this.internal._getCaretPosition(target);
+                    const selectionLength = this.ui.removeSelection();
+                    const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
                     this.blocks.insertAt(this.internal.currentItemIndex, caretPosition, key);
                     this.internal._setCaretPosition(target, caretPosition + 1);
                 },
@@ -335,6 +348,14 @@
             },
             onDrop: () => {
                 this.internal.drag = false;
+            },
+            /** Removing selection and return selection length **/
+            removeSelection: () => {
+                const selection = document.getSelection();
+                const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
+                const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
+                this.blocks.removeAt(this.internal.currentItemIndex, selectionEnd, selectionEnd - selectionStart);
+                return selectionEnd - selectionStart
             },
         };
 
