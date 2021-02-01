@@ -5,8 +5,8 @@
                 <i class="mdi mdi-format-title" />
             </button>
         </div>
-<!--        <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">-->
-<!--            <transition-group type="transition" :name="'flip-list'">-->
+        <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">
+            <transition-group type="transition" :name="'flip-list'">
                 <div
                     :class="'MDEditor__md-block' +
                      (internal.currentItemIndex === index ? ' MDEditor__md-block--selected': '')"
@@ -17,7 +17,7 @@
                     v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <pre class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</pre>
+                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
                 <div
@@ -29,8 +29,8 @@
                     <span class="MDEditor__no-content-text">Ajouter un block et commencer à travailler</span>
                     <button @click="blocks.addBlock(0)">Ajouter un block</button>
                 </div>
-<!--            </transition-group>-->
-<!--        </draggable>-->
+            </transition-group>
+        </draggable>
     </div>
 </template>
 
@@ -164,7 +164,7 @@
                 notCharKeys: ['Enter', 'Delete', 'ArrowUp', 'ArrowDown', 'Tab', 'Backspace', 'Insert', 'Shift',
                     'Control', 'Alt', 'Meta', 'CapsLock', 'Escape', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8',
                     'F9', 'F10', 'F11', 'F12', 'AudioVolumeMute', 'AudioVolumeDown', 'AudioVolumeUp', 'AltGraph',
-                    'ContextMenu', 'NumLock', 'Home', 'PageUp', 'End', 'PageDown', 'Clear', 'Dead'],
+                    'ContextMenu', 'NumLock', 'Home', 'PageUp', 'End', 'PageDown', 'Clear', 'Dead', 'Super'],
                 precedentKey: '',
             },
             handleKeyDown: (event) => {
@@ -373,6 +373,7 @@
         mounted() {
             this.structuredContent.push(...this.codec.encodeFromMD(this.value)); /** Push allow us to not replace structuredContent value **/
         }
+
         @Watch('structuredContent', ({immediate: true, deep: true}))
         function() {
             this.events.input();

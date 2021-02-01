@@ -10,37 +10,35 @@
  */
 
 module.exports = {
-  url: '/',
+  url: 'http://localhost:8080',
   commands: [],
 
   // Main App element
   elements: {
-    appContainer: '#app'
+    app: '#app',
   },
-
-  // Home section
   sections: {
-    home: {
-      selector: '.home',
-
-      sections: {
-        usersList: {
-          selector: '.UserList',
-
-          elements: {
-            searchInput: {
-              selector: '__search-textfield label'
-            }
-          }
+    editor: {
+      selector: '.MDEditor',
+      locateStrategy: 'css selector',
+      elements: {
+        block: {
+          selector: '.MDEditor__md-block',
+          locateStrategy: 'css selector',
         },
-        usersForm: {
-          selector: '.usersForm',
-
-          elements: {
-
-          }
+        removeButton: {
+          selector: '.MDEditor__button--delete',
+          locateStrategy: 'css selector',
         },
+        selectedBlock: {
+          selector: '.MDEditor__md-block--selected',
+          locateStrategy: 'css selector',
+        },
+        emptyButton: {
+          selector: '.MDEditor__no-content > button',
+          locateStrategy: 'css selector',
+        }
       }
-    }
-  }
+    },
+  },
 };
