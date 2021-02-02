@@ -89,7 +89,7 @@ describe('MDEditor.codec', () => {
         }];
         const md = wrapper.vm.codec.decodeMDFrom(structuredContent);
 
-        expect(md).to.be.equal('Je suis un paragraphe !')
+        expect(md).to.be.equal('Je suis un paragraphe !\n')
     });
 
     // H1

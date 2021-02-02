@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 
@@ -16,7 +16,7 @@
     })
 
      class App extends Vue {
-        md = `# Petit éditeur Markdown
+        md = `# Petit <span style="font-style: italic; font-weight: bold">éditeur</span> Markdown
 
 ![Visuel daccueil](https://img.over-blog-kiwi.com/2/64/72/73/20180516/ob_f05e5c_question-mark-png128.png)
 

@@ -1,5 +1,19 @@
 <template>
-    <div class="MDEditor">
+    <div class="MDEditor" id="MDEditor">
+        <transition name="fade">
+            <div class="MDEditor__format-text"
+                 v-if="this.internal.selection"
+                 :style="'top: ' + this.internal.selection.posY + 'px; left:'  + this.internal.selection.posX + 'px'"
+            >
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-bold"/></button>
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-italic"/></button>
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-underline"/></button>
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-strikethrough"/></button>
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-code-tags"/></button>
+                <button class="MDEditor__format-text-button"><i class="mdi mdi-square-root"/></button>
+            </div>
+        </transition>
+
         <div class="MDEditor__controls-bar">
             <button class="MDEditor__button">
                 <i class="mdi mdi-format-title" />
@@ -16,10 +30,9 @@
                     @click="blocks.selectBlock(index)"
                     @keydown="ui.handleKeyDown($event)"
                     v-on:beforeinput="ui.handleInput($event)"
-                    @mouseup="events.log($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
+                    <pre class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</pre>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -41,6 +54,7 @@
     import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
     import { uuidv4 } from '@/lib/generators.js'
+    import { textWidth } from '@/lib/getTextWidth.js'
     import blank from '@/assets/blank-document.png'
 
     export default @Component({
@@ -110,6 +124,23 @@
                 })
             },
             /*-------------------------------------------------------------------------------------------*/
+            updateSelection: () => {
+                const selection = window.getSelection();
+                if (selection.toString().length > 0) {
+                    const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
+                    const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
+                    const posX = textWidth(selection.anchorNode.parentNode.innerText.toString().slice(0, selectionStart));
+                    this.internal.selection = {
+                        caretPos: selectionStart,
+                        length: selectionEnd - selectionStart,
+                        content: selection.toString(),
+                        posX: posX,
+                        posY: selection.anchorNode.parentNode.offsetTop - 45
+                    }
+                } else {
+                    this.internal.selection = null;
+                }
+            },
         };
 
         /**
@@ -190,7 +221,6 @@
             },
             handleInput: (event) => {
                 //** Handle the before input event to control his behaviour **/
-                console.log(event);
                 event.preventDefault();
                 if (event && event instanceof InputEvent) {
                     switch (event.inputType) {
@@ -323,7 +353,7 @@
                     this.internal._setCaretPosition(target, caretPosition + 1);
                 },
                 onDragSelection: () => {
-                    const selection = document.getSelection();
+                    const selection = window.getSelection();
                     const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
                     const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
 
@@ -427,15 +457,12 @@
             input: () => {
                 this.$emit('input', this.codec.decodeMDFrom(this.structuredContent));
             },
-            log: (event) => {
-                console.log(event);
-            },
             listeners: {
                 add: () => {
-                    // document.addEventListener('selectionchange', this.internal._setSelection)
+                    document.addEventListener('selectionchange', this.internal.updateSelection)
                 },
                 remove: () => {
-                    // document.removeEventListener('selectionchange', this.internal._setSelection)
+                    document.removeEventListener('selectionchange', this.internal.updateSelection)
                 }
             }
         };
@@ -471,6 +498,7 @@ resetButton()
     background transparent
     border-color transparent
     font-weight normal
+
 *
     font-family "Rubik"
 
@@ -479,6 +507,31 @@ resetButton()
     min-height 1000px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
+    &__format-text
+        height 36px
+        max-width 180px
+        position absolute
+        z-index 100
+        display flex
+        align-items center
+        background-color #333
+        border-radius 8px
+        box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
+        &-button
+            resetButton()
+            height 36px
+            width 30px
+            color #EEE
+            cursor pointer
+            &:hover
+                background-color #444
+            &:first-child
+                border-bottom-left-radius 8px
+                border-top-left-radius 8px
+            &:last-child
+                border-bottom-right-radius 8px
+                border-top-right-radius 8px
+
     &__controls-bar
         height 40px
         background #eee
@@ -560,9 +613,16 @@ resetButton()
             color #949494
 
 
+/** Fade animation **/
+.fade-enter-active, .fade-leave-active
+    transition opacity .5s
+    transition-delay 0.2s
+
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */
+  opacity 0
 
 
-/** Drag & Drop animation **/
+/** Drag & Drop animation (Vue Draggable)**/
 .flip-list-move
     transition transform 0s
 
