@@ -177,8 +177,8 @@ dmypy.json
 node_modules
 /dist
 
-/tests/e2e/reports/
-/tests/e2e/logs/
+/test/e2e/reports/
+/test/e2e/logs/
 selenium-debug.log
 
 # local env files
