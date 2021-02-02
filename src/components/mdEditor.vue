@@ -5,6 +5,7 @@
                  v-if="this.internal.selection"
                  :style="'top: ' + this.internal.selection.posY + 'px; left:'  + this.internal.selection.posX + 'px'"
             >
+                <div class="MDEditor__format-text-pointer"/>
                 <button class="MDEditor__format-text-button"><i class="mdi mdi-format-bold"/></button>
                 <button class="MDEditor__format-text-button"><i class="mdi mdi-format-italic"/></button>
                 <button class="MDEditor__format-text-button"><i class="mdi mdi-format-underline"/></button>
@@ -129,11 +130,12 @@
                     const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
                     const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
                     const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
+                    console.log(coordinate);
                     this.internal.selection = {
                         caretPos: selectionStart,
                         length: selectionEnd - selectionStart,
                         content: selection.toString(),
-                        posX: coordinate.left,
+                        posX: coordinate.left - 90 + coordinate.width/2,
                         posY: coordinate.top - 45
                     }
                 } else {
@@ -524,12 +526,21 @@ resetButton()
             cursor pointer
             &:hover
                 background-color #444
-            &:first-child
+            &:nth-child(2)
                 border-bottom-left-radius 8px
                 border-top-left-radius 8px
             &:last-child
                 border-bottom-right-radius 8px
                 border-top-right-radius 8px
+        &-pointer
+            width 0
+            height 0
+            position absolute
+            top 32px
+            left 80px
+            border-left 10px solid transparent
+            border-right 10px solid transparent
+            border-top 10px solid #333
 
     &__controls-bar
         height 40px
