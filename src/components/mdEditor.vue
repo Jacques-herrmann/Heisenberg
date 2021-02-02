@@ -32,7 +32,7 @@
                     v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <pre class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</pre>
+                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -54,7 +54,6 @@
     import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
     import { uuidv4 } from '@/lib/generators.js'
-    import { textWidth } from '@/lib/getTextWidth.js'
     import blank from '@/assets/blank-document.png'
 
     export default @Component({
@@ -129,13 +128,13 @@
                 if (selection.toString().length > 0) {
                     const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
                     const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
-                    const posX = textWidth(selection.anchorNode.parentNode.innerText.toString().slice(0, selectionStart));
+                    const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
                     this.internal.selection = {
                         caretPos: selectionStart,
                         length: selectionEnd - selectionStart,
                         content: selection.toString(),
-                        posX: posX,
-                        posY: selection.anchorNode.parentNode.offsetTop - 45
+                        posX: coordinate.left,
+                        posY: coordinate.top - 45
                     }
                 } else {
                     this.internal.selection = null;
