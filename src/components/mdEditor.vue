@@ -130,15 +130,15 @@
                     const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
                     const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
                     const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
-                    console.log(coordinate);
                     this.internal.selection = {
                         caretPos: selectionStart,
                         length: selectionEnd - selectionStart,
                         content: selection.toString(),
-                        posX: coordinate.left - 90 + coordinate.width/2,
+                        posX: coordinate.left - 90 + coordinate.width/2, // 90 is the menu length/2
                         posY: coordinate.top - 45
                     }
-                } else {
+                }
+                else {
                     this.internal.selection = null;
                 }
             },
@@ -251,7 +251,8 @@
             },
             behaviors: {
                 onEnter: (target) => { /** Create a new block containing after caret content of current block **/
-                    const selectionLength = this.ui.removeSelection();
+                    this.ui.removeSelection();
+                    const selectionLength = this.internal.selection ? this.internal.selection.length : 0;
                     const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
 
                     this.blocks.splitBlock(this.internal.currentItemIndex, caretPosition);
@@ -277,7 +278,8 @@
                     }
                      /** else simply remove precedent character **/
                     else if (caretPosition){
-                        let selectionLength = this.ui.removeSelection();
+                        this.ui.removeSelection();
+                        let selectionLength = this.internal.selection ? this.internal.selection.length : 0;
                         if (!selectionLength) {
                             this.blocks.removeAt(this.internal.currentItemIndex, caretPosition);
                             selectionLength = 1;
@@ -291,7 +293,8 @@
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
                     const caretAtEnd = caretPosition === this.structuredContent[this.internal.currentItemIndex].content.length;
 
-                    const selectionLength = this.ui.removeSelection();
+                    this.ui.removeSelection();
+                    let selectionLength = this.internal.selection ? this.internal.selection.length : 0;
                     if (selectionLength) {
                         this.internal._setCaretPosition(target, caretPosition - selectionLength);
                     }
@@ -348,7 +351,8 @@
                     }
                 },
                 onCharacter: (target , key) => {
-                    const selectionLength = this.ui.removeSelection();
+                    this.ui.removeSelection();
+                    const selectionLength = this.internal.selection ? this.internal.selection.length : 0;
                     const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
                     this.blocks.insertAt(this.internal.currentItemIndex, caretPosition, key);
                     this.internal._setCaretPosition(target, caretPosition + 1);
@@ -382,11 +386,10 @@
             },
             /** Removing selection and return selection length **/
             removeSelection: () => {
-                const selection = document.getSelection();
-                const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
-                const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
-                this.blocks.removeAt(this.internal.currentItemIndex, selectionEnd, selectionEnd - selectionStart);
-                return selectionEnd - selectionStart
+                const selection = this.internal.selection;
+                if (selection) {
+                    this.blocks.removeAt(this.internal.currentItemIndex, selection.caretPos + selection.length, selection.length);
+                }
             },
         };
 
