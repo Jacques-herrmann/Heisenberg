@@ -2,16 +2,16 @@
     <div class="MDEditor" id="MDEditor">
         <transition name="fade">
             <div class="MDEditor__format-text"
-                 v-if="this.internal.selection"
-                 :style="'top: ' + this.internal.selection.posY + 'px; left:'  + this.internal.selection.posX + 'px'"
+                 v-if="internal.selection.content"
+                 :style="'top: ' + internal.selection.posY + 'px; left:'  + internal.selection.posX + 'px'"
             >
                 <div class="MDEditor__format-text-pointer"/>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-bold"/></button>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-italic"/></button>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-underline"/></button>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-format-strikethrough"/></button>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-code-tags"/></button>
-                <button class="MDEditor__format-text-button"><i class="mdi mdi-square-root"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('b')"><i class="mdi mdi-format-bold"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('i')"><i class="mdi mdi-format-italic"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('u')"><i class="mdi mdi-format-underline"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('s')"><i class="mdi mdi-format-strikethrough"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('c')"><i class="mdi mdi-code-tags"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('f')"><i class="mdi mdi-square-root"/></button>
             </div>
         </transition>
 
@@ -33,7 +33,7 @@
                     v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode">{{ item.content }}</p>
+                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode" v-html="item.computed"/>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -85,61 +85,101 @@
             },
             currentItemIndex: 1,
             drag: false,
-            selection: null,
+            selection: {
+                blockIndex: null,
+                start: null,
+                end: null,
+                content: null,
+                layout: null,
+                posX: null,
+                posY: null
+            },
 
             /*-------------------------------------------------------------------------------------------*/
             _getCaretPosition: (block) => {
-                let caretPos = 0,
-                sel, range;
+                //** see. https://stackoverflow.com/a/4812022/96100 **/
+                let start = 0;
+                let end = 0;
+                let sel, range;
+
                 if (window.getSelection) {
                     sel = window.getSelection();
                     if (sel.rangeCount) {
                         range = sel.getRangeAt(0);
-                        if (range.commonAncestorContainer.parentNode === block) {
-                            caretPos = range.endOffset;
-                        }
+                        const preCaretRange = range.cloneRange();
+                        preCaretRange.selectNodeContents(block);
+                        preCaretRange.setEnd(range.startContainer, range.startOffset);
+                        // if (!preCaretRange.toString()) preCaretRange.setStart(range.startContainer, 0);
+                        start = preCaretRange.toString().length;
+                        preCaretRange.setEnd(range.endContainer, range.endOffset);
+                        end = preCaretRange.toString().length;
                     }
                 }
                 else if (document.selection && document.selection.createRange) {
                     range = document.selection.createRange();
-                    if (range.parentElement() === block) {
-                        let tempEl = document.createElement("span");
-                        block.insertBefore(tempEl, block.firstChild);
-                        let tempRange = range.duplicate();
-                        tempRange.moveToElementText(tempEl);
-                        tempRange.setEndPoint("EndToEnd", range);
-                        caretPos = tempRange.text.length;
-                    }
+                    const preCaretRange = doc.body.createTextRange();
+                    preCaretRange.moveToElementText(block);
+                    preCaretRange.setEndPoint('EndToStart', range);
+                    start = preCaretRange.text.length;
+                    preCaretRange.setEndPoint("EndToEnd", range);
+                    end = preCaretRange.text.length;
                 }
-                return caretPos;
+                return {start: start, end: end};
             },
             _setCaretPosition: (block, position=0) => {
+                let childIndex = 0;
                 this.$nextTick(() => {
                     let selection = window.getSelection();
                     let range = document.createRange();
-                    range.setStart(block.childNodes[0], Math.min(position, block.childNodes[0].length));
+                    if (!block.childNodes.length) range.setStart(block, 0); // Set cursor to an empty block
+                    else {
+                        // Retrieve the childNodes and childNodes offset to target
+                        for (let i=0; i < block.childNodes.length; i++) {
+                            let content = block.childNodes[i];
+                            if (content instanceof HTMLElement) content = content.innerText;
+                            if (content.length < position) {
+                                // If current childNode length smaller than specified position
+                                if (i === block.childNodes.length - 1) {
+                                    // And If position > sum childnodes.length set to the end of the last block
+                                    childIndex = block.childNodes.length - 1;
+                                    position = content.length
+                                }
+                                else {
+                                    //else test the next childNode and substract length to position
+                                    childIndex += 1;
+                                    position -= content.length;
+                                }
+                            }
+                            else break
+                        }
+                        if (block.childNodes[childIndex] instanceof HTMLElement) {
+                            range.setStart(block.childNodes[childIndex].childNodes[0], position);
+                        }
+                        else {
+                            range.setStart(block.childNodes[childIndex], position);
+                        }
+                    }
                     range.collapse(true);
                     selection.removeAllRanges();
                     selection.addRange(range);
                 })
             },
             /*-------------------------------------------------------------------------------------------*/
-            updateSelection: () => {
+            updateSelection: (event) => {
                 const selection = window.getSelection();
-                if (selection.toString().length > 0) {
-                    const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
-                    const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
-                    const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
-                    this.internal.selection = {
-                        caretPos: selectionStart,
-                        length: selectionEnd - selectionStart,
-                        content: selection.toString(),
-                        posX: coordinate.left - 90 + coordinate.width/2, // 90 is the menu length/2
-                        posY: coordinate.top - 45
-                    }
-                }
-                else {
-                    this.internal.selection = null;
+                const currentBlock = event.currentTarget.activeElement;
+                const caret = this.internal._getCaretPosition(currentBlock);
+                const blockIdx = this.blocks.getBlockIndex(currentBlock.parentNode.id);
+                const layout = blockIdx !== -1 ? this.structuredContent[blockIdx].layout.slice(caret.start, caret.end): null;
+                const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
+                this.internal.selection = {
+                    blockIndex: blockIdx,
+                    start: caret.start,
+                    end: caret.end,
+                    content: selection.toString(),
+                    layout: layout,
+                    posX: coordinate.left - 90 + coordinate.width/2, // 90 is the menu length/2
+                    posY: coordinate.top - 45
                 }
             },
         };
@@ -149,20 +189,98 @@
          **/
         codec = {
             /** Block type regex pattern **/
-            pattern: {},
-            /** Text regex pattern (bold, underline, italic,...)**/
-            styles: {},
-            /*-------------------------------------------------------------------------------------------*/
-            /** MarkDown to structured content array **/
+            pattern: {
+                admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,
+                image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,
+                video: /(<video( controls)?( src="([\\\/A-Za-z0-9_:\-\. éèàùêâ~]*)"))>([^<]*)(<\/video>)/,
+            },
             getBlockType: (block) => {
                 return 'p'
             },
+
+            /** Text regex pattern (bold, underline, italic,...)**/
+            styles: {
+                underline: /_(\S(.*?\S)?)_/gm,              // _......._
+                boldItalic: /\*\*\*(\S(.*?\S)?)\*\*\*/gm,   // ***......***
+                bold: /\*\*(\S(.*?\S)?)\*\*/gm,             // **........**
+                italic: /\*(\S(.*?\S)?)\*/gm,               // *.......*
+                strike: /~~(\S(.*?\S)?)~~/gm,               // ~~.......~~
+                subscript: /<sub>(\S(.*?\S)?)<\/sub>/gm,    // <sub>.......<\sub>
+                superscript: /<sup>(\S(.*?\S)?)<\/sup>/gm,  // <sup>.......<\sup>
+                formula: /\$(\S(.*?\S)?)\$/gm,              // $.......$
+                code: /`(\S(.*?\S)?)`/gm,                  // `.......`
+            },
+            getLayout: (md) => {
+                let layout = Array(md.length).fill('-');
+                function getFormat(re, rplc, lgth) {
+                    let match;
+                    while ((match = re.exec(md)) !== null) {
+                        layout.fill('r', match.index, match.index + lgth);
+                        layout.fill(rplc, match.index + lgth, match.index + match[0].length - lgth);
+                        layout.fill('r', match.index + match[0].length - lgth, match.index + match[0].length);
+                    }
+                }
+                // getFormat(this.codec.styles.underline, 'u', 1);
+                getFormat(this.codec.styles.italic, 'i', 1);
+                getFormat(this.codec.styles.bold, 'b', 2);
+                getFormat(this.codec.styles.strike, 's', 2);
+                return layout.filter(rule => rule !== 'r')
+            },
+            getContent: (md) => {
+                let content = md.replace(this.codec.styles.bold, '$1');
+                content = content.replace(this.codec.styles.italic, '$1');
+                return content
+            },
+
+            computeToHTML: (content, layout) => {
+                const BALISES = {
+                    '-': ['', ''],
+                    'u': ['<u>', '</u>'],
+                    'i': ['<i>', '</i>'],
+                    'b': ['<b>', '</b>'],
+                    's': ['<s>', '</s>'],
+                };
+                let computed = content;
+                let lastRule = '-';
+                for (let i = layout.length - 1; i >= 0; i--) {
+                    const rule = layout[i];
+                    if (rule !== lastRule) {
+                        computed = computed.slice(0, i + 1) + BALISES[rule][1] + BALISES[lastRule][0] + computed.slice(i + 1, computed.length)
+                    }
+                    lastRule = rule;
+                }
+                return BALISES[lastRule][0] + computed
+            },
+            computeToMD: (block) => {
+                const BALISES = {
+                    '-': '',
+                    'u': '_',
+                    'i': '*',
+                    'b': '**',
+                    's': '~~',
+                };
+                let md = block.content;
+                let lastRule = '-';
+                for (let i = block.layout.length - 1; i >= 0; i--) {
+                    const rule = block.layout[i];
+                    if (rule !== lastRule) {
+                        md = md.slice(0, i + 1) + BALISES[rule] + BALISES[lastRule] + md.slice(i + 1, md.length)
+                    }
+                    lastRule = rule;
+                }
+                return md
+            },
+            /** MarkDown to structured content array **/
             parseBlock: {
                 paragraph: (md) => {
+                    const content = this.codec.getContent(md);
+                    const layout = this.codec.getLayout(md);
                     return {
                         id: uuidv4(),
                         type: 'p',
-                        content: md,
+                        content: content,
+                        layout: layout,
+                        computed: this.codec.computeToHTML(content, layout),
                     };
                 }
             },
@@ -180,20 +298,22 @@
                 }
                 return structuredContent;
             },
+
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
+
             /** Translate structuredContent Array into markdown **/
             decodeMDFrom: (structuredContent) => {
                 let output = '';
                 for (const block of structuredContent) {
-                    if (block.type === 'p') output += block.content + '\n'
+                    if (block.type === 'p') output += this.codec.computeToMD(block) + '\n'
                 }
                 return output;
             },
         };
 
         /**
-         * Everything about user interaction <=> block management including switch, remove, type change
+         * Everything about user interaction (button and keyboard event)
          **/
         ui = {
             /** Handling key event, event and respective behaviors functions **/
@@ -252,10 +372,9 @@
             behaviors: {
                 onEnter: (target) => { /** Create a new block containing after caret content of current block **/
                     this.ui.removeSelection();
-                    const selectionLength = this.internal.selection ? this.internal.selection.length : 0;
-                    const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
+                    const caret = this.internal._getCaretPosition(target);
 
-                    this.blocks.splitBlock(this.internal.currentItemIndex, caretPosition);
+                    this.blocks.splitBlock(this.internal.currentItemIndex, caret.start);
                     this.internal.currentItemIndex ++;
                     this.$nextTick(() => {
                         /** Here we are waiting the DOM to rerender the new block before position caret on it**/
@@ -266,37 +385,38 @@
                 onTab: () => {},
                 onBackspace: (target) => {
                     /** Fusion current line with the precedent one if caretPosition === 0 **/
-                    const caretPosition = this.internal._getCaretPosition(target);
+                    const caret = this.internal._getCaretPosition(target);
                     const precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
-                    const precedentTextLength = precedentBlock ? precedentBlock.childNodes[0].length: 0;
+                    const precedentTextLength = precedentBlock ? this.structuredContent[this.internal.currentItemIndex - 1].content.length: 0;
 
-                    if (!caretPosition && precedentBlock) {
+                    if (!caret.start && precedentBlock) {
                         this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex);
                         this.internal.currentItemIndex--;
                         this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                     }
-                     /** else simply remove precedent character **/
-                    else if (caretPosition){
-                        this.ui.removeSelection();
-                        let selectionLength = this.internal.selection ? this.internal.selection.length : 0;
-                        if (!selectionLength) {
-                            this.blocks.removeAt(this.internal.currentItemIndex, caretPosition);
-                            selectionLength = 1;
+                     /** else simply remove precedent character or selection **/
+                    else if (caret.start) {
+                        let selectionLength = this.internal.selection.content.length;
+
+                        if (selectionLength) this.ui.removeSelection();
+                        else {
+                            this.blocks.removeAt(this.internal.currentItemIndex, caret.start - 1, caret.start);
+                            caret.start -= 1;
                         }
-                        this.internal._setCaretPosition(target, caretPosition - selectionLength);
+                        this.internal._setCaretPosition(target, caret.start);
                     }
                 },
                 onDelete: (target) => {
-                    const caretPosition = this.internal._getCaretPosition(target);
+                    const caret = this.internal._getCaretPosition(target);
                     const followingBlock = this.internal.currentItemIndex + 1 < this.structuredContent.length ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
-                    const caretAtEnd = caretPosition === this.structuredContent[this.internal.currentItemIndex].content.length;
+                    const caretAtEnd = caret.end === this.structuredContent[this.internal.currentItemIndex].content.length;
 
                     this.ui.removeSelection();
-                    let selectionLength = this.internal.selection ? this.internal.selection.length : 0;
+                    let selectionLength = this.internal.selection.content.length;
                     if (selectionLength) {
-                        this.internal._setCaretPosition(target, caretPosition - selectionLength);
+                        this.internal._setCaretPosition(target, caret.start);
                     }
                     else {
                         /** Fusion current line with the following one if caret at the end of the line **/
@@ -306,14 +426,14 @@
 
                         /** else simply remove next character**/
                         else {
-                            this.blocks.removeAt(this.internal.currentItemIndex, caretPosition + 1);
+                            this.blocks.removeAt(this.internal.currentItemIndex, caret.start, caret.start + 1);
                         }
-                        this.internal._setCaretPosition(target, caretPosition);
+                        this.internal._setCaretPosition(target, caret.start);
                     }
 
                 },
                 onArrows: (target, key) => {
-                    const caretPosition = this.internal._getCaretPosition(target);
+                    const caret = this.internal._getCaretPosition(target);
                     const precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
                     const nextBlock = this.internal.currentItemIndex < this.structuredContent.length - 1 ?
@@ -323,56 +443,50 @@
                         case 'ArrowUp':
                             if (precedentBlock) {
                                 this.internal.currentItemIndex --;
-                                this.internal._setCaretPosition(precedentBlock, caretPosition);
+                                this.internal._setCaretPosition(precedentBlock, caret.start);
                             }
                             break;
                         case 'ArrowDown':
                             if (nextBlock) {
                                 this.internal.currentItemIndex ++;
-                                this.internal._setCaretPosition(nextBlock, caretPosition);
+                                this.internal._setCaretPosition(nextBlock, caret.start);
                             }
                             break;
                         case 'ArrowLeft':
-                            if (!caretPosition && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
-                                const precedentTextLength = precedentBlock.childNodes[0].length;
+                            if (!caret.start && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
+                                const precedentTextLength = this.structuredContent[this.internal.currentItemIndex - 1].content.length;
                                 this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
-                            else { this.internal._setCaretPosition(target, caretPosition - 1); }
+                            else { this.internal._setCaretPosition(target, caret.start - 1); }
                             break;
                         case 'ArrowRight':
                             const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
-                            if (caretPosition >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
+                            if (caret.end >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
                                 this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock);
                             }
-                            else { this.internal._setCaretPosition(target, caretPosition + 1); }
+                            else { this.internal._setCaretPosition(target, caret.start + 1); }
                             break;
                     }
                 },
                 onCharacter: (target , key) => {
                     this.ui.removeSelection();
-                    const selectionLength = this.internal.selection ? this.internal.selection.length : 0;
-                    const caretPosition = this.internal._getCaretPosition(target) - selectionLength;
-                    this.blocks.insertAt(this.internal.currentItemIndex, caretPosition, key);
-                    this.internal._setCaretPosition(target, caretPosition + 1);
+                    const selection = this.internal.selection;
+                    const caret = this.internal._getCaretPosition(target);
+                    this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key);
+                    this.internal._setCaretPosition(target, selection.start + 1);
                 },
                 onDragSelection: () => {
-                    const selection = window.getSelection();
-                    const selectionStart = Math.min(selection.focusOffset, selection.anchorOffset);
-                    const selectionEnd = Math.max(selection.focusOffset, selection.anchorOffset);
-
-                    this.internal.selection = this.blocks.getTextAt(this.internal.currentItemIndex, selectionStart, selectionEnd);
-                    this.blocks.removeAt(this.internal.currentItemIndex, selectionEnd, selectionEnd - selectionStart);
+                    const selection = this.internal.selection;
+                    this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end);
                 },
                 onDropSelection: (event) => {
                     if (this.internal.selection) {
-                        const caretPos = this.internal._getCaretPosition(event.target);
+                        const caret = this.internal._getCaretPosition(event.target);
                         const index = this.blocks.getBlockIndex(event.currentTarget.id);
-
-                        if (index !== -1) this.blocks.insertAt(index, caretPos, this.internal.selection);
-                        this.internal._setCaretPosition(event.target, caretPos);
-                        this.internal.selection = null;
+                        if (index !== -1) this.blocks.insertAt(index, caret.start, this.internal.selection.content, this.internal.selection.layout);
+                        this.internal._setCaretPosition(event.target, caret.start);
                     }
                 },
                 onUnHandle: (event) => {},
@@ -388,8 +502,24 @@
             removeSelection: () => {
                 const selection = this.internal.selection;
                 if (selection) {
-                    this.blocks.removeAt(this.internal.currentItemIndex, selection.caretPos + selection.length, selection.length);
+                    this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end);
                 }
+            },
+            formatSelection: (format) => {
+                //get selection, update structuredcontent layout and compute structuredcontent
+                const selection = this.internal.selection;
+                let currentBlock = this.structuredContent[selection.blockIndex];
+                for (let i = selection.start; i < selection.end; i++) {
+                    if (currentBlock.layout[i] === format) currentBlock.layout.splice(i, 1, '-');
+                    else currentBlock.layout.splice(i, 1, format);
+                }
+                this.structuredContent.splice(this.internal.currentItemIndex, 1, {
+                    id: currentBlock.id,
+                    type: currentBlock.type,
+                    content: currentBlock.content,
+                    layout: currentBlock.layout,
+                    computed: this.codec.computeToHTML(currentBlock.content, currentBlock.layout)
+                });
             },
         };
 
@@ -417,19 +547,28 @@
             getTextAt: (index, start, end) => {
                 return this.structuredContent[index].content.slice(start, end);
             },
-            insertAt: (index, caretPos, char) => {
+            insertAt: (index, caretPos, char, layout=null) => {
                 const currentContent = this.structuredContent[index];
+                if (!layout) layout = Array(char.length).fill(caretPos && currentContent.layout[caretPos - 1] ? currentContent.layout[caretPos - 1] : '-');
                 currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
+                currentContent.layout.splice(caretPos, 0, ...layout);
+                currentContent.computed = this.codec.computeToHTML(currentContent.content, currentContent.layout);
                 this.structuredContent.splice(index, 1, currentContent);
             },
-            removeAt: (index, caretPos, length=1) => {
+            removeAt: (index, start, end) => {
                 /** Remove content before the caret **/
                 const currentContent = this.structuredContent[index];
-                currentContent.content = currentContent.content.slice(0, caretPos - length) + currentContent.content.slice(caretPos);
+                currentContent.content = currentContent.content.slice(0, start) + currentContent.content.slice(end);
+                currentContent.layout.splice(start, end - start);
+                currentContent.computed = this.codec.computeToHTML(currentContent.content, currentContent.layout);
                 this.structuredContent.splice(index, 1, currentContent);
             },
             mergeBlockWithPrecedent: (index) => {
-                this.structuredContent[index - 1].content += this.structuredContent[index].content;
+                const precedentBlock = this.structuredContent[index - 1];
+                precedentBlock.content += this.structuredContent[index].content;
+                precedentBlock.layout.push(...this.structuredContent[index].layout);
+                precedentBlock.computed = this.codec.computeToHTML(precedentBlock.content, precedentBlock.layout);
+                this.structuredContent.splice(index - 1, 1, precedentBlock);
                 this.structuredContent.splice(index, 1);
             },
             splitBlock: (index, caretPos) => {
@@ -452,7 +591,7 @@
         };
 
         /**
-         * Everything about emit events
+         * Everything about events
          **/
         events = {
             /** Input events => the v-model has changed
@@ -472,7 +611,7 @@
         };
 
         /**
-         * Everything about undo and redo change
+         * Everything about undo and redo
          **/
         history = {
             states: [],
@@ -490,7 +629,7 @@
             this.events.listeners.remove();
         }
 
-        @Watch('structuredContent', ({immediate: true, deep: true}))
+        @Watch('structuredContent', ({ immediate: true, deep: true }))
         function() {
             this.events.input();
         }
@@ -592,6 +731,7 @@ resetButton()
     /** Remove default outline **/
     & *
         outline none
+        white-space pre-wrap
 
     &__no-content
         width 100%
