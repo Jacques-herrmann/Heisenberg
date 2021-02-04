@@ -29,10 +29,10 @@
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-2"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-3"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button"><i class="mdi mdi-format-bold"/></button>
-            <button class="MDEditor__button"><i class="mdi mdi-format-underline"/></button>
-            <button class="MDEditor__button"><i class="mdi mdi-format-italic"/></button>
-            <button class="MDEditor__button"><i class="mdi mdi-format-strikethrough"/></button>
+            <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('b') : null"><i class="mdi mdi-format-bold"/></button>
+            <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('i') : null"><i class="mdi mdi-format-italic"/></button>
+            <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('u') : null"><i class="mdi mdi-format-underline"/></button>
+            <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('s') : null"><i class="mdi mdi-format-strikethrough"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-code-tags"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-square-root"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-link"/></button>
