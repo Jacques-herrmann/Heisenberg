@@ -1,6 +1,5 @@
 <!--TODO :
     - Create a function named compileBlock to compile the block at index
-    - Try to improve the reactivity (wrong caret position on fats typing)
     - Merge computeToHTML and computeToMD function
     - Add a props to choose the v-model input format (RichText or MD)
     - Test to remove selectBlock function and only use updateSelection
@@ -37,7 +36,6 @@
                     v-for="(item, index) in structuredContent"
                     :key="item.id"
                     :id="item.id"
-                    @click="blocks.selectBlock(index)"
                     @keydown="ui.handleKeyDown($event)"
                     v-on:beforeinput="ui.handleInput($event)"
                 >
@@ -541,9 +539,6 @@
                     }
                 };
                 return -1
-            },
-            selectBlock: (index) => {
-                this.internal.currentItemIndex = index;
             },
             addBlock: (index) => {
                 this.structuredContent.splice(index, 0, this.codec.parseBlock.paragraph(''));
