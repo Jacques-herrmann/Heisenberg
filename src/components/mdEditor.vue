@@ -559,39 +559,33 @@
             },
             removeAt: (index, start, end) => {
                 /** Remove content before the caret **/
-                const currentContent = this.structuredContent[index];
-                currentContent.content = currentContent.content.slice(0, start) + currentContent.content.slice(end);
-                currentContent.layout.splice(start, end - start);
-                currentContent.computed = this.codec.computeToHTML(currentContent.content, currentContent.layout);
-                this.structuredContent.splice(index, 1, currentContent);
+                const block = this.structuredContent[index];
+                block.content = block.content.slice(0, start) + block.content.slice(end);
+                block.layout.splice(start, end - start);
+                this.structuredContent.splice(index, 1, this.blocks.computeBlock(block));
             },
             mergeBlockWithPrecedent: (index) => {
                 const precedentBlock = this.structuredContent[index - 1];
                 precedentBlock.content += this.structuredContent[index].content;
                 precedentBlock.layout.push(...this.structuredContent[index].layout);
-                precedentBlock.computed = this.codec.computeToHTML(precedentBlock.content, precedentBlock.layout);
-                this.structuredContent.splice(index - 1, 1, precedentBlock);
+                this.structuredContent.splice(index - 1, 1, this.blocks.computeBlock(precedentBlock));
                 this.structuredContent.splice(index, 1);
             },
             splitBlock: (index, caretPos) => {
-                const processBlock =this.structuredContent[index];
+                const newBlock = this.codec.parseBlock.paragraph('');
+                const block = this.structuredContent[index];
 
-                const splittedBlock = {
-                    id: processBlock.id,
-                    type: processBlock.type,
-                    content: processBlock.content.substr(0, caretPos),
-                    layout: processBlock.layout.slice(0, caretPos),
-                    computed: this.codec.computeToHTML(processBlock.content.substr(0, caretPos), processBlock.layout.slice(0, caretPos)),
-                };
-                const newBlock = {
-                    id: uuidv4(),
-                    type: 'p',
-                    content: processBlock.content.substr(caretPos),
-                    layout: processBlock.layout.slice(caretPos),
-                    computed: this.codec.computeToHTML(processBlock.content.substr(caretPos), processBlock.layout.slice(caretPos)),
-                };
-                this.structuredContent.splice(index , 1, splittedBlock);
-                this.structuredContent.splice(index + 1, 0, newBlock);
+                newBlock.content = block.content.substr(caretPos);
+                newBlock.layout = block.layout.slice(caretPos);
+                block.content = block.content.substr(0, caretPos);
+                block.layout = block.layout.slice(0, caretPos);
+
+                this.structuredContent.splice(index , 1, this.blocks.computeBlock(block));
+                this.structuredContent.splice(index + 1, 0, this.blocks.computeBlock(newBlock));
+            },
+            computeBlock: (block) => {
+                block.computed = this.codec.computeToHTML(block.content, block.layout);
+                return block;
             },
         };
 
