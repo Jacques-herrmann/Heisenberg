@@ -22,6 +22,10 @@ module.exports = {
       selector: '.MDEditor',
       locateStrategy: 'css selector',
       elements: {
+        formatButton: {
+          selector: '.MDEditor__format-text-button',
+          locateStrategy: 'css selector',
+        },
         block: {
           selector: '.MDEditor__md-block',
           locateStrategy: 'css selector',

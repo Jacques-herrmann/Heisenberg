@@ -293,6 +293,109 @@ describe('MDEditor.ui', () => {
         })
     });
 
+    it('should allow to change selection format', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 100, 0)
+                .mouseButtonUp(0)
+        });
+        // Click on bold button
+        editor.expect.element('@formatButton').to.be.present;
+        editor.api.elements('@formatButton', (buttons) => {
+            editor.api.elementIdClick(buttons.result.value[0].ELEMENT)
+        })
+
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 3);
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, ' Im a cool WYSIWYG markdown Editor\n ')
+            });
+        })
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(2) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, '<b>Im a co</b>ol WYSIWYG markdown Editor')
+        })
+    });
+
+    it('should allow to slit and merge formatted text', (browser) => {
+        let page = browser.page.mdEditor();
+        page.navigate().waitForElementVisible('@app', 5000);
+        let editor = page.section.editor;
+
+        // Select the first block
+        editor.click('.MDEditor__content');
+
+        // Write something on it
+        browser
+            .keys('Hello world !')
+            .keys(browser.Keys.ENTER)
+            .keys('Im a cool WYSIWYG markdown Editor')
+            .keys(browser.Keys.ENTER)
+            .keys('and i should allow user to switch block with arrow key')
+            .pause(100)
+
+        // Select Text
+        editor.api.elements('@block', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 100, 0)
+                .mouseButtonUp(0)
+                .pause(100)
+
+            // Click on bold button to format text (italic)
+            editor.expect.element('@formatButton').to.be.present;
+            editor.api.elements('@formatButton', (buttons) => {
+                editor.api.elementIdClick(buttons.result.value[1].ELEMENT)
+            })
+
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 90, 0)
+                .mouseButtonClick(0)
+                .keys(browser.Keys.ENTER)
+                .pause(100)
+        });
+
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 4);
+            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+                browser.assert.equal(text.value, ' Im a c\n ')
+            });
+            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+                browser.assert.equal(text.value, ' ool WYSIWYG markdown Editor\n ')
+            });
+        })
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(2) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, '<i>Im a c</i>')
+        })
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(3) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, '<i>o</i>ol WYSIWYG markdown Editor')
+        })
+
+        browser.keys(browser.Keys.BACK_SPACE)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(2) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, '<i>Im a co</i>ol WYSIWYG markdown Editor')
+        })
+    });
+
     // xit('should allow user to drag and drop selected text', (browser) => {
     //     let page = browser.page.mdEditor();
     //     page.navigate().waitForElementVisible('@app', 5000);
