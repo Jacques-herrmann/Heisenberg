@@ -85,10 +85,10 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 2);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world')
+                browser.assert.equal(text.value, ' Hello world \n ')
             });
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, '!')
+                browser.assert.equal(text.value, ' !\n ')
             })
         })
     });
@@ -121,7 +121,7 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 1);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !I m a cool WYSIWYG markdown Editor')
+                browser.assert.equal(text.value, ' Hello world !I m a cool WYSIWYG markdown Editor\n ')
             });
         })
     });
@@ -156,13 +156,13 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 3);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !')
+                browser.assert.equal(text.value, ' Hello world !\n ')
             });
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown A')
+                browser.assert.equal(text.value, ' Im a cool WYSIWYG markdown A\n ')
             });
             editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+                browser.assert.equal(text.value, ' and i should allow user to switch block with arrow key\n ')
             });
         })
     });
@@ -198,16 +198,16 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 4);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !')
+                browser.assert.equal(text.value, ' Hello world !\n ')
             });
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+                browser.assert.equal(text.value, ' Im a cool WYSIWYG markdown \n ')
             });
             editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'or')
+                browser.assert.equal(text.value, ' or\n ')
             });
             editor.api.elementIdText(blocks.result.value[3].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+                browser.assert.equal(text.value, ' and i should allow user to switch block with arrow key\n ')
             });
         })
     });
@@ -242,13 +242,13 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 3);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !')
+                browser.assert.equal(text.value, ' Hello world !\n ')
             });
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+                browser.assert.equal(text.value, ' Im a cool WYSIWYG markdown \n ')
             });
             editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+                browser.assert.equal(text.value, ' and i should allow user to switch block with arrow key\n ')
             });
         })
     });
@@ -282,13 +282,13 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@block', (blocks) => {
             browser.assert.equal(blocks.result.value.length, 3);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !')
+                browser.assert.equal(text.value, ' Hello world !\n ')
             });
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'ol WYSIWYG markdown Editor')
+                browser.assert.equal(text.value, ' ol WYSIWYG markdown Editor\n ')
             });
             editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+                browser.assert.equal(text.value, ' and i should allow user to switch block with arrow key\n ')
             });
         })
     });
