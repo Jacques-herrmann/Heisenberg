@@ -1,9 +1,5 @@
 <!--TODO :
-    - Create a function named compileBlock to compile the block at index
-    - Merge computeToHTML and computeToMD function
     - Add a props to choose the v-model input format (RichText or MD)
-    - Test to remove selectBlock function and only use updateSelection
-
 -->
 
 <template>
@@ -207,8 +203,15 @@
             },
 
             /** Text regex pattern (bold, underline, italic,...)**/
+            tags: {
+                '-': { MD: '', HTML: ['', '']},
+                'u': { MD: '__', HTML: ['<u>', '</u>']},
+                'i': { MD: '*', HTML: ['<i>', '</i>']},
+                'b': { MD: '**', HTML: ['<b>', '</b>']},
+                's': { MD: '~~', HTML: ['<s>', '</s>']},
+            },
             styles: {
-                underline: /_(\S(.*?\S)?)_/gm,              // _......._
+                underline: /__(\S(.*?\S)?)__/gm,            // __.......__
                 boldItalic: /\*\*\*(\S(.*?\S)?)\*\*\*/gm,   // ***......***
                 bold: /\*\*(\S(.*?\S)?)\*\*/gm,             // **........**
                 italic: /\*(\S(.*?\S)?)\*/gm,               // *.......*
@@ -240,43 +243,20 @@
                 return content
             },
 
-            computeToHTML: (content, layout) => {
-                const BALISES = {
-                    '-': ['', ''],
-                    'u': ['<u>', '</u>'],
-                    'i': ['<i>', '</i>'],
-                    'b': ['<b>', '</b>'],
-                    's': ['<s>', '</s>'],
-                };
+            computeTo: (format, content, layout) => {
+                // format = MD or HTML
                 let computed = content;
                 let lastRule = '-';
                 for (let i = layout.length - 1; i >= 0; i--) {
                     const rule = layout[i];
                     if (rule !== lastRule) {
-                        computed = computed.slice(0, i + 1) + BALISES[rule][1] + BALISES[lastRule][0] + computed.slice(i + 1, computed.length)
+                        computed = computed.slice(0, i + 1) +
+                                   this.codec.tags[rule][format][1] + this.codec.tags[lastRule][format][0] +
+                                   computed.slice(i + 1, computed.length);
                     }
                     lastRule = rule;
                 }
-                return BALISES[lastRule][0] + computed
-            },
-            computeToMD: (block) => {
-                const BALISES = {
-                    '-': '',
-                    'u': '_',
-                    'i': '*',
-                    'b': '**',
-                    's': '~~',
-                };
-                let md = block.content;
-                let lastRule = '-';
-                for (let i = block.layout.length - 1; i >= 0; i--) {
-                    const rule = block.layout[i];
-                    if (rule !== lastRule) {
-                        md = md.slice(0, i + 1) + BALISES[rule] + BALISES[lastRule] + md.slice(i + 1, md.length)
-                    }
-                    lastRule = rule;
-                }
-                return md
+                return this.codec.tags[lastRule][format][0] + computed
             },
             /** MarkDown to structured content array **/
             parseBlock: {
@@ -288,7 +268,7 @@
                         type: 'p',
                         content: content,
                         layout: layout,
-                        computed: this.codec.computeToHTML(content, layout),
+                        computed: this.codec.computeTo('HTML', content, layout),
                     };
                 }
             },
@@ -314,7 +294,7 @@
             decodeMDFrom: (structuredContent) => {
                 let output = '';
                 for (const block of structuredContent) {
-                    if (block.type === 'p') output += this.codec.computeToMD(block) + '\n'
+                    if (block.type === 'p') output += this.codec.computeTo('MD', block.content, block.layout) + '\n'
                 }
                 return output;
             },
@@ -503,7 +483,7 @@
             onDrop: () => {
                 this.internal.drag = false;
             },
-            /** Removing selection and return selection length **/
+            /** Working with selection  **/
             removeSelection: () => {
                 const selection = this.internal.selection;
                 if (selection) {
@@ -523,7 +503,7 @@
                     type: currentBlock.type,
                     content: currentBlock.content,
                     layout: currentBlock.layout,
-                    computed: this.codec.computeToHTML(currentBlock.content, currentBlock.layout)
+                    computed: this.codec.computeTo('HTML', currentBlock.content, currentBlock.layout)
                 });
             },
         };
@@ -554,7 +534,7 @@
                 if (!layout) layout = Array(char.length).fill(caretPos && currentContent.layout[caretPos - 1] ? currentContent.layout[caretPos - 1] : '-');
                 currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
                 currentContent.layout.splice(caretPos, 0, ...layout);
-                currentContent.computed = this.codec.computeToHTML(currentContent.content, currentContent.layout);
+                currentContent.computed = this.codec.computeTo('HTML', currentContent.content, currentContent.layout);
                 this.structuredContent.splice(index, 1, currentContent);
             },
             removeAt: (index, start, end) => {
@@ -584,7 +564,7 @@
                 this.structuredContent.splice(index + 1, 0, this.blocks.computeBlock(newBlock));
             },
             computeBlock: (block) => {
-                block.computed = this.codec.computeToHTML(block.content, block.layout);
+                block.computed = this.codec.computeTo('HTML', block.content, block.layout);
                 return block;
             },
         };
