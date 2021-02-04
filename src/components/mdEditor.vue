@@ -3,6 +3,7 @@
     - Try to improve the reactivity (wrong caret position on fats typing)
     - Merge computeToHTML and computeToMD function
     - Add a props to choose the v-model input format (RichText or MD)
+    - Test to remove selectBlock function and only use updateSelection
 
 -->
 
@@ -178,6 +179,7 @@
                 const currentBlock = event.currentTarget.activeElement;
                 const caret = this.internal._getCaretPosition(currentBlock);
                 const blockIdx = this.blocks.getBlockIndex(currentBlock.parentNode.id);
+                this.internal.currentItemIndex = blockIdx;
                 const layout = blockIdx !== -1 ? this.structuredContent[blockIdx].layout.slice(caret.start, caret.end): null;
                 const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
                 this.internal.selection = {
@@ -398,16 +400,14 @@
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
                     const precedentTextLength = precedentBlock ? this.structuredContent[this.internal.currentItemIndex - 1].content.length: 0;
 
-                    if (!caret.start && precedentBlock) {
+                    if (!caret.end && precedentBlock) {
                         this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex);
                         this.internal.currentItemIndex--;
                         this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                     }
                      /** else simply remove precedent character or selection **/
-                    else if (caret.start) {
-                        let selectionLength = this.internal.selection.content.length;
-
-                        if (selectionLength) this.ui.removeSelection();
+                    else {
+                        if (this.internal.selection.content) this.ui.removeSelection();
                         else {
                             this.blocks.removeAt(this.internal.currentItemIndex, caret.start - 1, caret.start);
                             caret.start -= 1;
@@ -480,10 +480,9 @@
                 },
                 onCharacter: (target , key) => {
                     this.ui.removeSelection();
-                    const selection = this.internal.selection;
                     const caret = this.internal._getCaretPosition(target);
-                    this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key);
-                    this.internal._setCaretPosition(target, selection.start + 1);
+                    this.blocks.insertAt(this.internal.currentItemIndex, caret.start, key);
+                    this.internal._setCaretPosition(target, caret.start + 1);
                 },
                 onDragSelection: () => {
                     const selection = this.internal.selection;
@@ -667,7 +666,7 @@ resetButton()
     font-family "Rubik"
 
 .MDEditor
-    width 1000px
+    width 800px
     min-height 1000px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
