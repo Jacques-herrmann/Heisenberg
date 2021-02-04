@@ -16,13 +16,38 @@
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('s')"><i class="mdi mdi-format-strikethrough"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('c')"><i class="mdi mdi-code-tags"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('f')"><i class="mdi mdi-square-root"/></button>
+                <button class="MDEditor__format-text-button" @click="ui.formatSelection('l')"><i class="mdi mdi-link"/></button>
             </div>
         </transition>
 
-        <div class="MDEditor__controls-bar">
-            <button class="MDEditor__button">
-                <i class="mdi mdi-format-title" />
-            </button>
+        <div class="MDEditor__controls">
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-undo"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-redo"/></button>
+            <div class="MDEditor__controls-divider"></div>
+            <button class="MDEditor__button"><i class="mdi mdi-text-subject"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-1"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-2"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-3"/></button>
+            <div class="MDEditor__controls-divider"></div>
+            <button class="MDEditor__button"><i class="mdi mdi-format-bold"/></button>
+            <button class="MDEditor__button"><i class="mdi mdi-format-underline"/></button>
+            <button class="MDEditor__button"><i class="mdi mdi-format-italic"/></button>
+            <button class="MDEditor__button"><i class="mdi mdi-format-strikethrough"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-code-tags"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-square-root"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-link"/></button>
+            <div class="MDEditor__controls-divider"></div>
+            <button class="MDEditor__button"><i class="mdi mdi-format-list-bulleted"/></button>
+            <button class="MDEditor__button"><i class="mdi mdi-format-list-numbered"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
+            <div class="MDEditor__controls-divider"></div>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-quote-close"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-note-text"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle-outline"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle"/></button>
+            <div class="MDEditor__controls-divider"></div>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-image"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-video"/></button>
         </div>
         <draggable :list="structuredContent" ghost-class='ghost' @start="ui.onDrag" @end="ui.onDrop">
             <transition-group type="transition" :name="'flip-list'">
@@ -182,7 +207,7 @@
                     end: caret.end,
                     content: selection.toString(),
                     layout: layout,
-                    posX: coordinate.left - 90 + coordinate.width/2, // 90 is the menu length/2
+                    posX: coordinate.left - 105 + coordinate.width/2, // 105 is the menu length/2
                     posY: coordinate.top - 45
                 }
             },
@@ -194,6 +219,13 @@
         codec = {
             /** Block type regex pattern **/
             pattern: {
+                title: '',
+                title2: '',
+                title3: '',
+                orderedList: '',
+                unorderedList: '',
+                quote: '',
+                code: '',
                 admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,
                 image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,
                 video: /(<video( controls)?( src="([\\\/A-Za-z0-9_:\-\. éèàùêâ~]*)"))>([^<]*)(<\/video>)/,
@@ -635,13 +667,13 @@ resetButton()
     font-family "Rubik"
 
 .MDEditor
-    width 800px
+    width 840px
     min-height 1000px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
     &__format-text
         height 36px
-        max-width 180px
+        max-width 210px
         position absolute
         z-index 100
         display flex
@@ -668,33 +700,47 @@ resetButton()
             height 0
             position absolute
             top 32px
-            left 80px
+            left 95px
             border-left 10px solid transparent
             border-right 10px solid transparent
             border-top 10px solid #333
 
-    &__controls-bar
+    &__controls
         height 40px
         background #eee
         position -webkit-sticky
         position sticky
         text-align left
         border-bottom 1px solid #ccc
+        display flex
+        align-items center
+        &-divider
+            height 60%
+            width 1px
+            margin  0 4px
+            background-color rgba(0, 0, 0, .2)
+
     &__button
         resetButton()
         height 36px
         padding 8px
         color #888
         transition all 0.3s ease
+        cursor pointer
         & i
             font-size 1.2em
-            opacity 0
 
         &--dragable
             cursor move
 
         &--delete
             cursor pointer
+
+        &--disabled
+            opacity 0.5
+            cursor default
+            &:hover
+                color #888 !important
 
         &:hover
             color #333
@@ -705,6 +751,8 @@ resetButton()
         justify-content flex-start
         &--selected
             background-color #F8F8F8
+        & i
+            opacity: 0;
         &:hover
             background-color #F8F8F8
             & i
@@ -753,6 +801,7 @@ resetButton()
         &-text
             font-size 14px
             color #949494
+
 
 
 /** Fade animation **/
