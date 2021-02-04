@@ -1,3 +1,11 @@
+<!--TODO :
+    - Create a function named compileBlock to compile the block at index
+    - Try to improve the reactivity (wrong caret position on fats typing)
+    - Merge computeToHTML and computeToMD function
+    - Add a props to choose the v-model input format (RichText or MD)
+
+-->
+
 <template>
     <div class="MDEditor" id="MDEditor">
         <transition name="fade">
@@ -572,11 +580,24 @@
                 this.structuredContent.splice(index, 1);
             },
             splitBlock: (index, caretPos) => {
-                const beforeCaretContent = this.structuredContent[index].content.substr(0, caretPos);
-                const afterCaretContent = this.structuredContent[index].content.substr(caretPos);
-                this.structuredContent[index].content.slice(0, caretPos);
-                this.structuredContent.splice(index , 1, ...this.codec.encodeFromMD(beforeCaretContent));
-                this.structuredContent.splice(index + 1, 0, ...this.codec.encodeFromMD(afterCaretContent));
+                const processBlock =this.structuredContent[index];
+
+                const splittedBlock = {
+                    id: processBlock.id,
+                    type: processBlock.type,
+                    content: processBlock.content.substr(0, caretPos),
+                    layout: processBlock.layout.slice(0, caretPos),
+                    computed: this.codec.computeToHTML(processBlock.content.substr(0, caretPos), processBlock.layout.slice(0, caretPos)),
+                };
+                const newBlock = {
+                    id: uuidv4(),
+                    type: 'p',
+                    content: processBlock.content.substr(caretPos),
+                    layout: processBlock.layout.slice(caretPos),
+                    computed: this.codec.computeToHTML(processBlock.content.substr(caretPos), processBlock.layout.slice(caretPos)),
+                };
+                this.structuredContent.splice(index , 1, splittedBlock);
+                this.structuredContent.splice(index + 1, 0, newBlock);
             },
         };
 
@@ -646,7 +667,7 @@ resetButton()
     font-family "Rubik"
 
 .MDEditor
-    width 800px
+    width 1000px
     min-height 1000px
     margin 50px auto
     box-shadow 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)
