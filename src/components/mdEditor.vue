@@ -553,36 +553,49 @@
                 },
                 onArrows: (target, key) => {
                     const caret = this.internal._getCaretPosition(target);
-                    const precedentBlock = this.internal.currentItemIndex ?
+                    const currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
+                    let itemIndex = -1;
+                    let precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
-                    const nextBlock = this.internal.currentItemIndex < this.structuredContent.length - 1 ?
+                    let nextBlock = this.internal.currentItemIndex < this.structuredContent.length - 1 ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
+
+                    // Case current block is list Item
+                    if (target.dataset['itemIndex']) {
+                        itemIndex = parseInt(target.dataset['itemIndex']);
+                        if (itemIndex) precedentBlock = currentBlock.childNodes[itemIndex - 1];
+                        if (itemIndex !== currentBlock.childNodes.length - 1) nextBlock = currentBlock.childNodes[itemIndex + 1];
+                    }
+                    //Case precedentBlock/nextBlock is list item
+                    if (precedentBlock && ['UL', 'OL'].indexOf(precedentBlock.nodeName) !== -1){
+                        precedentBlock = precedentBlock.childNodes[precedentBlock.childNodes.length - 1];
+                    }
+                    if (nextBlock && ['UL', 'OL'].indexOf(nextBlock.nodeName) !== -1){
+                        nextBlock = nextBlock.childNodes[0];
+                    }
+
 
                     switch (key) {
                         case 'ArrowUp':
                             if (precedentBlock) {
-                                this.internal.currentItemIndex --;
                                 this.internal._setCaretPosition(precedentBlock, caret.start);
                             }
                             break;
                         case 'ArrowDown':
                             if (nextBlock) {
-                                this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock, caret.start);
                             }
                             break;
                         case 'ArrowLeft':
                             if (!caret.start && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
-                                const precedentTextLength = this.structuredContent[this.internal.currentItemIndex - 1].content.length;
-                                this.internal.currentItemIndex --;
+                                let precedentTextLength = precedentBlock.innerText.length;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
                             else { this.internal._setCaretPosition(target, caret.start - 1); }
                             break;
                         case 'ArrowRight':
-                            const currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
+                            let currentTextLength = target.innerText.length
                             if (caret.end >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
-                                this.internal.currentItemIndex ++;
                                 this.internal._setCaretPosition(nextBlock);
                             }
                             else { this.internal._setCaretPosition(target, caret.start + 1); }
