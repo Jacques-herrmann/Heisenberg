@@ -62,6 +62,12 @@
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
                     <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode" v-html="item.computed"/>
+                    <ul class="MDEditor__content" :ref="item.id" v-if="item.type === 'ul'" :contenteditable="editMode">
+                        <li v-for="(li, i) in item.computed" :key="li" v-html="li"/>
+                    </ul>
+                    <ol class="MDEditor__content" :ref="item.id" v-if="item.type === 'ol'" :contenteditable="editMode">
+                        <li v-for="(li, i) in item.computed" :key="li" v-html="li"/>
+                    </ol>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -219,19 +225,41 @@
         codec = {
             /** Block type regex pattern **/
             pattern: {
-                title: '',
-                title2: '',
-                title3: '',
-                orderedList: '',
-                unorderedList: '',
-                quote: '',
-                code: '',
-                admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,
-                image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,
-                video: /(<video( controls)?( src="([\\\/A-Za-z0-9_:\-\. éèàùêâ~]*)"))>([^<]*)(<\/video>)/,
+                // h1: /\# (.*)/,                                           // # ....
+                // h2: /\#\# (.*)/,                                         // ## ....
+                // h3: /\#\#\# (.*)/,                                       // ### ....
+                ol: /^[0-9]+\.(.*)$/,                                      // 1.....
+                ul: /^[\*\+\-] +(.*)$/,                                      // -.... or *..... or +.....
+                // table: /|(?:([^\\r\\n|]*)\\|)+\\r?\\n\\|(?:(:?-+:?)\\|)+\\r?\\n(\\|(?:([^\\r\\n|]*)\\|)+\\r?\\n)+/,
+                // | Syntax      | Description |
+                // | ----------- | ----------- |
+                // | Header      | Title       |
+                // | Paragraph   | Text        |
+                // quote: /(&gt;|\>)(.*)/,                                  // > ....
+                // code: /```(.*?)```/,                                     // ``` ....```
+                // admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,                //
+                // image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,                    //
+                // video: /(<video( controls)?( src="([\\\/A-Za-z0-9_:\-\. éèàùêâ~]*)"))>([^<]*)(<\/video>)/,
             },
-            getBlockType: (block) => {
-                return 'p'
+            getBlockType: (md) => {
+                let type = null;
+
+                // md.match(this.codec.pattern.h1) ? type = 'h1': null;
+                // !type && md.match(this.codec.pattern.h2) ? type = 'h2': null;
+                // !type && md.match(this.codec.pattern.h3) ? type = 'h3': null;
+
+                !type && md.match(this.codec.pattern.ul) ? type = 'ul': null;
+                !type && md.match(this.codec.pattern.ol) ? type = 'ol': null;
+                // !type && md.match(this.codec.pattern.table) ? type = 'table': null;
+                //
+                // !type && md.match(this.codec.pattern.quote) ? type = 'quote': null;
+                // !type && md.match(this.codec.pattern.code) ? type = 'code': null;
+                // !type && md.match(this.codec.pattern.admonition) ? type = 'admonition': null;
+                // !type && md.match(this.codec.pattern.image) ? type = 'image': null;
+                // !type && md.match(this.codec.pattern.video) ? type = 'video': null;
+
+                !type ? type = 'p': null;
+                return type
             },
 
             /** Text regex pattern (bold, underline, italic,...)**/
@@ -251,7 +279,8 @@
                 subscript: /<sub>(\S(.*?\S)?)<\/sub>/gm,    // <sub>.......<\sub>
                 superscript: /<sup>(\S(.*?\S)?)<\/sup>/gm,  // <sup>.......<\sup>
                 formula: /\$(\S(.*?\S)?)\$/gm,              // $.......$
-                code: /`(\S(.*?\S)?)`/gm,                  // `.......`
+                code: /`(\S(.*?\S)?)`/gm,                   // `.......`
+                link: /\[([^\[]+)\]\(([^\)]+)\)/            // [...](...)
             },
             getLayout: (md) => {
                 let layout = Array(md.length).fill('-');
@@ -274,7 +303,6 @@
                 content = content.replace(this.codec.styles.italic, '$1');
                 return content
             },
-
             computeTo: (format, content, layout) => {
                 // format = MD or HTML
                 let computed = content;
@@ -302,18 +330,61 @@
                         layout: layout,
                         computed: this.codec.computeTo('HTML', content, layout),
                     };
-                }
+                },
+                list: (listType, md) => {
+                    const tree = md.slice(0, -1).split('\n').map(item => listType === 'ul' ? item.substr(2): item.substr(3));
+                    const content = tree.map(item => this.codec.getContent(item));
+                    const layout = tree.map(item => this.codec.getLayout(item));
+                    return {
+                        id: uuidv4(),
+                        type: listType,
+                        content: content,
+                        layout: layout,
+                        computed: tree.map(item => this.codec.computeTo('HTML', content[tree.indexOf(item)], layout[tree.indexOf(item)])),
+                    }
+                },
+
             },
             encodeFromMD: (md) => {
-                const blocks = md.split('\n');
-                let currentBlockType = null;
+                const rows = md.split('\n');
+                let currentType = null;
+                let previousType = null;
+                let currentBlockContent = '';
                 let structuredContent = [];
 
-                for (let block of blocks) {
-                    currentBlockType = this.codec.getBlockType(block);
+                for (let md of rows) {
+                    /** Detect new block type if the currentType is null **/
+                    if (!currentType) {
+                        previousType = currentType;
+                        currentType = this.codec.getBlockType(md);
+                        currentBlockContent = '';
+                    }
 
-                    if (currentBlockType && currentBlockType === 'p') {
-                        structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.paragraph(block))
+                    /** Fill currentBlock content if we still are in it else set currentType as null **/
+                    if (currentType && currentType === 'p') {
+                        if (!md.length) {
+                            previousType = currentType;
+                            currentType = null;
+                        }
+                        else currentBlockContent += md;
+                    }
+                    else if (currentType && ['ul', 'ol'].indexOf(currentType) !== -1) {
+                        if (!md.length){
+                            previousType = currentType;
+                            currentType = null;
+                        }
+                        else currentBlockContent += md + '\n';
+                    }
+
+                    /** If a new block is detected (currentType is null) add the currentBlockContent to the structuredContent **/
+                    if (!currentType) {
+                        console.log(previousType);
+                        if (previousType && previousType === 'p') {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.paragraph(currentBlockContent));
+                        }
+                        else if (previousType && ['ul', 'ol'].indexOf(previousType) !== -1) {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.list(previousType, currentBlockContent));
+                        }
                     }
                 }
                 return structuredContent;
@@ -326,7 +397,7 @@
             decodeMDFrom: (structuredContent) => {
                 let output = '';
                 for (const block of structuredContent) {
-                    if (block.type === 'p') output += this.codec.computeTo('MD', block.content, block.layout) + '\n'
+                    if (block.type === 'p') output += this.codec.computeTo('MD', block.content, block.layout) + '\n\n'
                 }
                 return output;
             },
@@ -751,7 +822,7 @@ resetButton()
         justify-content flex-start
         &--selected
             background-color #F8F8F8
-        & i
+        & button > i
             opacity: 0;
         &:hover
             background-color #F8F8F8

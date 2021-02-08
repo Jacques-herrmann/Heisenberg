@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 
@@ -13,12 +13,59 @@
         components: {
             'md-editor': mdEditor,
         }
-})
+    })
 
      class App extends Vue {
         md = `# Petit éditeur Markdown
 
-![Visuel daccueil](https://img.over-blog-kiwi.com/2/64/72/73/20180516/ob_f05e5c_question-mark-png128.png)
+Voici une liste ordonnée :
+
+1. First item
+2. Second item
+5. Third item
+4. Fourth item
+9. Fifth item
+
+- First i**tem**
+- Second item
+* Third item
+* Fourt*h ite*m
+* Fifth item
+
+## Introduction
+
+**Markdown** est un langage de balisage léger permettant de créer du texte formaté à l' aide d'un éditeur de texte brut. *John Gruber* et *Aaron Swartz* ont créé Markdown en 2004 en tant que langage de balisage qui séduit les lecteurs humains sous sa forme de code source. Markdown est largement utilisé dans les blogs , la messagerie instantanée , les forums en ligne , les logiciels collaboratifs , les pages de documentation et les fichiers README .
+Vous pouvez retrouver l'ensemble des règles de synthaxe via ce lien [Syntaxe Markdown](https://www.markdownguide.org/basic-syntax/)
+
+
+
+
+## Titres
+
+## Paragraphe
+
+## Formater le texte
+
+## Citations
+
+## Avertissements
+
+## Listes
+
+## Tableau
+
+## Code
+
+## Lien
+
+## Formules
+
+## Images
+
+## Vidéo
+
+
+
 
 !!! note
     Si vous voyez ce message, c'est que l'éditeur est en mode démonstration. Cet éditeur est utilisable dans une application Vue via l'utilisation de
