@@ -62,11 +62,25 @@
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
                     <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode" v-html="item.computed"/>
-                    <ul class="MDEditor__content" :ref="item.id" v-if="item.type === 'ul'" :contenteditable="editMode">
-                        <li v-for="(li, i) in item.computed" :key="li" v-html="li"/>
+                    <ul class="MDEditor__content" :ref="item.id" v-if="item.type === 'ul'">
+                        <li
+                            v-for="(li, i) in item.computed"
+                            :key="li"
+                            :data-block-id="item.id"
+                            :data-item-index="i"
+                            v-html="li"
+                            :contenteditable="editMode"
+                        />
                     </ul>
-                    <ol class="MDEditor__content" :ref="item.id" v-if="item.type === 'ol'" :contenteditable="editMode">
-                        <li v-for="(li, i) in item.computed" :key="li" v-html="li"/>
+                    <ol class="MDEditor__content" :ref="item.id" v-if="item.type === 'ol'">
+                        <li
+                            v-for="(li, i) in item.computed"
+                            :key="li"
+                            :data-block-id="item.id"
+                            :data-item-index="i"
+                            v-html="li"
+                            :contenteditable="editMode"
+                        />
                     </ol>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
@@ -201,14 +215,30 @@
             /*-------------------------------------------------------------------------------------------*/
             updateSelection: (event) => {
                 const selection = window.getSelection();
+                const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
                 const currentBlock = event.currentTarget.activeElement;
                 const caret = this.internal._getCaretPosition(currentBlock);
-                const blockIdx = this.blocks.getBlockIndex(currentBlock.parentNode.id);
-                this.internal.currentItemIndex = blockIdx;
-                const layout = blockIdx !== -1 ? this.structuredContent[blockIdx].layout.slice(caret.start, caret.end): null;
-                const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
+                let blockID = currentBlock.parentNode.id;
+                let itemIndex = -1;
+                let layout = null;
+                if (!blockID) { // Case list
+                    blockID = currentBlock.dataset['blockId'];
+                    itemIndex = parseInt(currentBlock.dataset['itemIndex']);
+                }
+                const blockIndex = this.blocks.getBlockIndex(blockID);
+                if (blockIndex) {
+                    if (itemIndex >= 0) {
+                        layout = this.structuredContent[blockIndex].layout[itemIndex].slice(caret.start, caret.end);
+                    }
+                    else {
+                        layout = this.structuredContent[blockIndex].layout.slice(caret.start, caret.end);
+                    }
+                }
+
+                this.internal.currentItemIndex = blockIndex;
                 this.internal.selection = {
-                    blockIndex: blockIdx,
+                    blockIndex: blockIndex,
+                    itemIndex: itemIndex,
                     start: caret.start,
                     end: caret.end,
                     content: selection.toString(),
