@@ -499,14 +499,27 @@
             behaviors: {
                 onEnter: (target) => { /** Create a new block containing after caret content of current block **/
                     this.ui.removeSelection();
-                    const caret = this.internal._getCaretPosition(target);
+                    const selection = this.internal.selection;
+                    let currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
+                    if (selection.itemIndex === -1){
+                        this.blocks.splitBlock(this.internal.currentItemIndex, selection.start);
+                        this.internal.currentItemIndex ++;
+                    }
+                    else if (selection.itemIndex === currentBlock.childNodes.length - 1 && currentBlock.childNodes[selection.itemIndex].innerText === ''){
+                        this.blocks.removeItemAt(this.internal.currentItemIndex, selection.itemIndex);
+                        this.blocks.addBlock(this.internal.currentItemIndex + 1);
+                        this.internal.currentItemIndex ++;
+                        selection.itemIndex = -1;
+                    }
+                    else {
+                        this.blocks.splitListBlock(this.internal.currentItemIndex, selection.start, selection.itemIndex);
+                        selection.itemIndex += 1;
+                    }
 
-                    this.blocks.splitBlock(this.internal.currentItemIndex, caret.start);
-                    this.internal.currentItemIndex ++;
                     this.$nextTick(() => {
                         /** Here we are waiting the DOM to rerender the new block before position caret on it**/
                         const newBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
-                        this.internal._setCaretPosition(newBlock);
+                        this.internal._setCaretPosition(newBlock, 0, selection.itemIndex);
                     });
                 },
                 onTab: () => {},
@@ -612,10 +625,6 @@
                     let caretPos = selection.start + 1;
                     let currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                     this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key, null, selection.itemIndex);
-                    if (selection.itemIndex !== -1) {
-                        // caretPos += this.structuredContent[this.internal.currentItemIndex].content.slice(0, selection.itemIndex).join('').length;
-                        // currentBlock = currentBlock.childNodes[selection.itemIndex]
-                    }
                     this.internal._setCaretPosition(currentBlock, caretPos, selection.itemIndex);
                 },
                 onDragSelection: () => {
@@ -714,6 +723,13 @@
                 }
                 this.structuredContent.splice(blockIndex, 1, this.blocks.computeBlock(block));
             },
+            removeItemAt: (blockIndex, itemIndex) => {
+                /** Remove item from block (list block) **/
+                const block = this.structuredContent[blockIndex];
+                block.content.splice(itemIndex, 1);
+                block.layout.splice(itemIndex, 1);
+                this.structuredContent.splice(blockIndex, 1, this.blocks.computeBlock(block));
+            },
             mergeBlockWithPrecedent: (index) => {
                 const precedentBlock = this.structuredContent[index - 1];
                 precedentBlock.content += this.structuredContent[index].content;
@@ -732,6 +748,19 @@
 
                 this.structuredContent.splice(index , 1, this.blocks.computeBlock(block));
                 this.structuredContent.splice(index + 1, 0, this.blocks.computeBlock(newBlock));
+            },
+            splitListBlock: (index, caretPos, itemIndex) => {
+                const block = this.structuredContent[index];
+                const content = block.content[itemIndex];
+                const layout = block.layout[itemIndex];
+
+                block.content.splice(itemIndex, 1, content.substr(0, caretPos));
+                block.content.splice(itemIndex + 1, 0, content.substr(caretPos));
+
+                block.layout.splice(itemIndex, 1, layout.slice(0, caretPos));
+                block.layout.splice(itemIndex + 1, 0, layout.slice(caretPos));
+
+                this.structuredContent.splice(index , 1, this.blocks.computeBlock(block));
             },
             computeBlock: (block) => {
                 if (['ul', 'ol'].indexOf(block.type) === -1) {
