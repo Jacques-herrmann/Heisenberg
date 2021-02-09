@@ -1,5 +1,6 @@
 <!--TODO :
     - Add a props to choose the v-model input format (RichText or MD)
+    - Create class to improve block management and to refactor code
 -->
 
 <template>
@@ -135,6 +136,7 @@
             drag: false,
             selection: {
                 blockIndex: null,
+                itemIndex: null,
                 start: null,
                 end: null,
                 content: null,
@@ -174,11 +176,15 @@
                 }
                 return {start: start, end: end};
             },
-            _setCaretPosition: (block, position=0) => {
+            _setCaretPosition: (block, position=0, itemIndex=-1) => {
+                console.log(block);
                 let childIndex = 0;
                 this.$nextTick(() => {
                     let selection = window.getSelection();
                     let range = document.createRange();
+                    console.log(selection);
+                    console.log(range);
+                    if (itemIndex !== -1) block = block.childNodes[itemIndex]
                     if (!block.childNodes.length) range.setStart(block, 0); // Set cursor to an empty block
                     else {
                         // Retrieve the childNodes and childNodes offset to target
@@ -215,7 +221,7 @@
             /*-------------------------------------------------------------------------------------------*/
             updateSelection: (event) => {
                 const selection = window.getSelection();
-                const coordinate  = selection.getRangeAt(0).getBoundingClientRect();
+                const coordinate = selection.getRangeAt(0).getBoundingClientRect();
                 const currentBlock = event.currentTarget.activeElement;
                 const caret = this.internal._getCaretPosition(currentBlock);
                 let blockID = currentBlock.parentNode.id;
@@ -573,8 +579,6 @@
                     if (nextBlock && ['UL', 'OL'].indexOf(nextBlock.nodeName) !== -1){
                         nextBlock = nextBlock.childNodes[0];
                     }
-
-
                     switch (key) {
                         case 'ArrowUp':
                             if (precedentBlock) {
@@ -604,9 +608,15 @@
                 },
                 onCharacter: (target , key) => {
                     this.ui.removeSelection();
-                    const caret = this.internal._getCaretPosition(target);
-                    this.blocks.insertAt(this.internal.currentItemIndex, caret.start, key);
-                    this.internal._setCaretPosition(target, caret.start + 1);
+                    const selection = this.internal.selection;
+                    let caretPos = selection.start + 1;
+                    let currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
+                    this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key, null, selection.itemIndex);
+                    if (selection.itemIndex !== -1) {
+                        // caretPos += this.structuredContent[this.internal.currentItemIndex].content.slice(0, selection.itemIndex).join('').length;
+                        // currentBlock = currentBlock.childNodes[selection.itemIndex]
+                    }
+                    this.internal._setCaretPosition(currentBlock, caretPos, selection.itemIndex);
                 },
                 onDragSelection: () => {
                     const selection = this.internal.selection;
@@ -633,7 +643,7 @@
             removeSelection: () => {
                 const selection = this.internal.selection;
                 if (selection) {
-                    this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end);
+                    this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end, selection.itemIndex);
                 }
             },
             formatSelection: (format) => {
@@ -675,20 +685,34 @@
             getTextAt: (index, start, end) => {
                 return this.structuredContent[index].content.slice(start, end);
             },
-            insertAt: (index, caretPos, char, layout=null) => {
+            insertAt: (index, caretPos, char, layout=null, itemIndex=-1) => {
                 const currentContent = this.structuredContent[index];
-                if (!layout) layout = Array(char.length).fill(caretPos && currentContent.layout[caretPos - 1] ? currentContent.layout[caretPos - 1] : '-');
-                currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
-                currentContent.layout.splice(caretPos, 0, ...layout);
-                currentContent.computed = this.codec.computeTo('HTML', currentContent.content, currentContent.layout);
+                if (['ul', 'ol'].indexOf(currentContent.type) === -1) {
+                    if (!layout) layout = Array(char.length).fill(caretPos && currentContent.layout[caretPos - 1] ? currentContent.layout[caretPos - 1] : '-');
+                    currentContent.content = currentContent.content.slice(0, caretPos) + char + currentContent.content.slice(caretPos);
+                    currentContent.layout.splice(caretPos, 0, ...layout);
+                    currentContent.computed = this.codec.computeTo('HTML', currentContent.content, currentContent.layout);
+                }
+                else{
+                    if (!layout) layout = Array(char.length).fill(caretPos && currentContent.layout[itemIndex][caretPos - 1] ? currentContent.layout[itemIndex][caretPos - 1] : '-');
+                    currentContent.content[itemIndex] = currentContent.content[itemIndex].slice(0, caretPos) + char + currentContent.content[itemIndex].slice(caretPos);
+                    currentContent.layout[itemIndex].splice(caretPos, 0, ...layout);
+                    currentContent.computed[itemIndex] = this.codec.computeTo('HTML', currentContent.content[itemIndex], currentContent.layout[itemIndex]);
+                }
                 this.structuredContent.splice(index, 1, currentContent);
             },
-            removeAt: (index, start, end) => {
+            removeAt: (blockIndex, start, end, itemIndex=-1) => {
                 /** Remove content before the caret **/
-                const block = this.structuredContent[index];
-                block.content = block.content.slice(0, start) + block.content.slice(end);
-                block.layout.splice(start, end - start);
-                this.structuredContent.splice(index, 1, this.blocks.computeBlock(block));
+                const block = this.structuredContent[blockIndex];
+                if(itemIndex === -1) {
+                    block.content = block.content.slice(0, start) + block.content.slice(end);
+                    block.layout.splice(start, end - start);
+                }
+                else {
+                    block.content[itemIndex] = block.content[itemIndex].slice(0, start) + block.content[itemIndex].slice(end);
+                    block.layout[itemIndex].splice(start, end - start);
+                }
+                this.structuredContent.splice(blockIndex, 1, this.blocks.computeBlock(block));
             },
             mergeBlockWithPrecedent: (index) => {
                 const precedentBlock = this.structuredContent[index - 1];
@@ -710,7 +734,13 @@
                 this.structuredContent.splice(index + 1, 0, this.blocks.computeBlock(newBlock));
             },
             computeBlock: (block) => {
-                block.computed = this.codec.computeTo('HTML', block.content, block.layout);
+                if (['ul', 'ol'].indexOf(block.type) === -1) {
+                    block.computed = this.codec.computeTo('HTML', block.content, block.layout);
+                }
+                else {
+                    block.computed = block.content.map(item => this.codec.computeTo('HTML',
+                        block.content[block.content.indexOf(item)], block.layout[block.content.indexOf(item)]))
+                }
                 return block;
             },
         };
