@@ -1,6 +1,7 @@
 <!--TODO :
     - Add a props to choose the v-model input format (RichText or MD)
     - Create class to improve block management and to refactor code
+    - Need to find a solution for drag and drop handle
 -->
 
 <template>
@@ -62,7 +63,13 @@
                     v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode" v-html="item.computed"/>
+                    <p class="MDEditor__content"
+                       :ref="item.id"
+                       v-if="item.type === 'p'"
+                       :contenteditable="editMode"
+                       v-html="item.computed"
+                       :data-block-id="item.id"
+                    />
                     <ul class="MDEditor__content" :ref="item.id" v-if="item.type === 'ul'">
                         <li
                             v-for="(li, i) in item.computed"
@@ -177,14 +184,11 @@
                 return {start: start, end: end};
             },
             _setCaretPosition: (block, position=0, itemIndex=-1) => {
-                console.log(block);
                 let childIndex = 0;
                 this.$nextTick(() => {
                     let selection = window.getSelection();
                     let range = document.createRange();
-                    console.log(selection);
-                    console.log(range);
-                    if (itemIndex !== -1) block = block.childNodes[itemIndex]
+                    if (itemIndex !== -1) block = block.childNodes[itemIndex];
                     if (!block.childNodes.length) range.setStart(block, 0); // Set cursor to an empty block
                     else {
                         // Retrieve the childNodes and childNodes offset to target
@@ -655,22 +659,24 @@
                 onCharacter: (target , key) => {
                     this.ui.removeSelection();
                     const selection = this.internal.selection;
-                    let caretPos = selection.start + 1;
+                    // Here if we use the selection start as caretPos, the editor loose correct caret position on fast typing
+                    const caretPos = this.internal._getCaretPosition(target);
                     let currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                     this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key, null, selection.itemIndex);
-                    this.internal._setCaretPosition(currentBlock, caretPos, selection.itemIndex);
+                    this.internal._setCaretPosition(currentBlock, caretPos.start + 1, selection.itemIndex);
                 },
                 onDragSelection: () => {
-                    const selection = this.internal.selection;
-                    this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end);
+                    // const selection = this.internal.selection;
+                    // this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end, selection.itemIndex);
                 },
                 onDropSelection: (event) => {
-                    if (this.internal.selection) {
-                        const caret = this.internal._getCaretPosition(event.target);
-                        const index = this.blocks.getBlockIndex(event.currentTarget.id);
-                        if (index !== -1) this.blocks.insertAt(index, caret.start, this.internal.selection.content, this.internal.selection.layout);
-                        this.internal._setCaretPosition(event.target, caret.start);
-                    }
+                    // const selection = this.internal.selection;
+                    // const caret = this.internal._getCaretPosition(event.target);
+                    //
+                    // const index = this.blocks.getBlockIndex(event.currentTarget.id);
+                    // const itemIndex = this.blocks.getItemIndex(event.currentTarget.id, event.currentTarget);
+                    // if (index !== -1) this.blocks.insertAt(index, caret.start, selection.content, selection.layout, itemIndex);
+                    // this.internal._setCaretPosition(event.target, caret.start, itemIndex);
                 },
                 onUnHandle: (event) => {},
             },
@@ -716,6 +722,13 @@
                         return this.structuredContent.indexOf(block);
                     }
                 };
+                return -1
+            },
+            getItemIndex: (blockId, node) => {
+                const children = this.$refs[blockId][0].childNodes;
+                for (let i = 0; i < children.length; i++) {
+                    if (node === children[i]) return i
+                }
                 return -1
             },
             addBlock: (index) => {
