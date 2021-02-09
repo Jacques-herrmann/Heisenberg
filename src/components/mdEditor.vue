@@ -554,6 +554,7 @@
                         }
                         this.internal._setCaretPosition(precedentBlock, caretPos, selection.itemIndex);
                     }
+
                      /** else simply remove precedent character or selection **/
                     else {
                         if (this.internal.selection.content) this.ui.removeSelection();
@@ -565,29 +566,42 @@
                     }
                 },
                 onDelete: (target) => {
-                    const caret = this.internal._getCaretPosition(target);
+                    const selection = this.internal.selection;
+                    const currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                     const followingBlock = this.internal.currentItemIndex + 1 < this.structuredContent.length ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
-                    const caretAtEnd = caret.end === this.structuredContent[this.internal.currentItemIndex].content.length;
+                    let caretAtEndItem = false;
+                    let caretAtEndBlock = false;
+
+                    if (selection.itemIndex !== -1) {
+                        caretAtEndItem = selection.end === currentBlock.childNodes[selection.itemIndex].innerText.length;
+                        if (caretAtEndItem && selection.itemIndex === currentBlock.childNodes.length - 1) caretAtEndBlock = true;
+                    }
+                    else {
+                        caretAtEndBlock = selection.end === currentBlock.innerText.length;
+                    }
 
                     this.ui.removeSelection();
                     let selectionLength = this.internal.selection.content.length;
                     if (selectionLength) {
-                        this.internal._setCaretPosition(target, caret.start);
+                        this.internal._setCaretPosition(currentBlock, selection.start, selection.itemIndex);
                     }
                     else {
                         /** Fusion current line with the following one if caret at the end of the line **/
-                        if (followingBlock && caretAtEnd) {
+                        if (followingBlock && caretAtEndBlock) {
                             this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex + 1);
+                        }
+                        /** Case merging list item together**/
+                        else if (caretAtEndItem) {
+                            this.blocks.mergeItemWithPrecedent(this.internal.currentItemIndex, selection.itemIndex + 1)
                         }
 
                         /** else simply remove next character**/
                         else {
-                            this.blocks.removeAt(this.internal.currentItemIndex, caret.start, caret.start + 1);
+                            this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.start + 1, selection.itemIndex);
                         }
-                        this.internal._setCaretPosition(target, caret.start);
+                        this.internal._setCaretPosition(currentBlock, selection.start, selection.itemIndex);
                     }
-
                 },
                 onArrows: (target, key) => {
                     const caret = this.internal._getCaretPosition(target);
