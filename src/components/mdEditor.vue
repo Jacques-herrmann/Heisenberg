@@ -525,24 +525,43 @@
                 onTab: () => {},
                 onBackspace: (target) => {
                     /** Fusion current line with the precedent one if caretPosition === 0 **/
-                    const caret = this.internal._getCaretPosition(target);
+                    const selection = this.internal.selection;
+                    const currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                     const precedentBlock = this.internal.currentItemIndex ?
                         this.$refs[this.structuredContent[this.internal.currentItemIndex - 1].id][0] : null;
-                    const precedentTextLength = precedentBlock ? this.structuredContent[this.internal.currentItemIndex - 1].content.length: 0;
+                    let caretPos = precedentBlock ? this.structuredContent[this.internal.currentItemIndex - 1].content.length: 0;
 
-                    if (!caret.end && precedentBlock) {
+                     /** Case merging list item together **/
+                    if (selection.itemIndex > 0 && !selection.end) {
+                        this.blocks.mergeItemWithPrecedent(this.internal.currentItemIndex, selection.itemIndex);
+                        caretPos = currentBlock.childNodes[selection.itemIndex - 1].innerText.length;
+                        selection.itemIndex -= 1;
+                        this.internal._setCaretPosition(currentBlock, caretPos, selection.itemIndex);
+                    }
+
+                    /** Case merging block **/
+                    else if (selection.itemIndex <=0 && !selection.end && precedentBlock) {
                         this.blocks.mergeBlockWithPrecedent(this.internal.currentItemIndex);
                         this.internal.currentItemIndex--;
-                        this.internal._setCaretPosition(precedentBlock, precedentTextLength);
+
+                        /** Case precedent block is a list **/
+                        if (precedentBlock && ['UL', 'OL'].indexOf(precedentBlock.nodeName) !== -1) {
+                            caretPos = precedentBlock.childNodes[precedentBlock.childNodes.length - 1].innerText.length;
+                            selection.itemIndex = precedentBlock.childNodes.length - 1;
+                        }
+                        else {
+                            selection.itemIndex = -1;
+                        }
+                        this.internal._setCaretPosition(precedentBlock, caretPos, selection.itemIndex);
                     }
                      /** else simply remove precedent character or selection **/
                     else {
                         if (this.internal.selection.content) this.ui.removeSelection();
                         else {
-                            this.blocks.removeAt(this.internal.currentItemIndex, caret.start - 1, caret.start);
-                            caret.start -= 1;
+                            this.blocks.removeAt(this.internal.currentItemIndex, selection.start - 1, selection.start, selection.itemIndex);
+                            selection.start -= 1;
                         }
-                        this.internal._setCaretPosition(target, caret.start);
+                        this.internal._setCaretPosition(currentBlock, selection.start, selection.itemIndex);
                     }
                 },
                 onDelete: (target) => {
@@ -732,10 +751,40 @@
             },
             mergeBlockWithPrecedent: (index) => {
                 const precedentBlock = this.structuredContent[index - 1];
-                precedentBlock.content += this.structuredContent[index].content;
-                precedentBlock.layout.push(...this.structuredContent[index].layout);
+                const currentBlock = this.structuredContent[index];
+
+                if (['ul', 'ol'].indexOf(precedentBlock.type) !== -1) {
+                    if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
+                        precedentBlock.content[precedentBlock.content.length - 1] += currentBlock.content.join(' ');
+                        precedentBlock.layout[precedentBlock.layout.length - 1].push(...[].concat.apply([], precedentBlock.layout));
+                    }
+                    else {
+                        precedentBlock.content[precedentBlock.content.length - 1] += currentBlock.content;
+                        precedentBlock.layout[precedentBlock.layout.length - 1].push(...currentBlock.layout);
+                    }
+                }
+                else {
+                    if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
+                        precedentBlock.content += currentBlock.content.join(' ');
+                        precedentBlock.layout.push(...[].concat.apply([], precedentBlock.layout));
+                    }
+                    else {
+                        precedentBlock.content += currentBlock.content;
+                        precedentBlock.layout.push(...currentBlock.layout);
+                    }
+                }
                 this.structuredContent.splice(index - 1, 1, this.blocks.computeBlock(precedentBlock));
                 this.structuredContent.splice(index, 1);
+            },
+            mergeItemWithPrecedent: (index, itemIndex) => {
+                const block = this.structuredContent[index];
+
+                block.content[itemIndex - 1] += block.content[itemIndex];
+                block.content.splice(itemIndex, 1);
+                block.layout[itemIndex - 1].push(...block.layout[itemIndex]);
+                block.layout.splice(itemIndex, 1);
+
+                this.structuredContent.splice(index, 1, this.blocks.computeBlock(block));
             },
             splitBlock: (index, caretPos) => {
                 const newBlock = this.codec.parseBlock.paragraph('');
