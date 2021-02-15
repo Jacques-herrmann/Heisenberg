@@ -304,11 +304,11 @@
 
             /** Text regex pattern (bold, underline, italic,...)**/
             tags: {
-                '-': { MD: '', HTML: ['', '']},
-                'u': { MD: '__', HTML: ['<u>', '</u>']},
-                'i': { MD: '*', HTML: ['<i>', '</i>']},
-                'b': { MD: '**', HTML: ['<b>', '</b>']},
-                's': { MD: '~~', HTML: ['<s>', '</s>']},
+                '-': { MD: ['', ''], HTML: ['', '']},
+                'u': { MD: ['__', '__'], HTML: ['<u>', '</u>']},
+                'i': { MD: ['*', '*'], HTML: ['<i>', '</i>']},
+                'b': { MD: ['**', '**'], HTML: ['<b>', '</b>']},
+                's': { MD: ['~~', '~~'], HTML: ['<s>', '</s>']},
             },
             styles: {
                 underline: /__(\S(.*?\S)?)__/gm,            // __.......__
@@ -356,7 +356,9 @@
                     }
                     lastRule = rule;
                 }
-                return this.codec.tags[lastRule][format][0] + computed
+                const result = this.codec.tags[lastRule][format][0] + computed
+                console.log(result);
+                return result
             },
             /** MarkDown to structured content array **/
             parseBlock: {
@@ -437,8 +439,15 @@
             decodeMDFrom: (structuredContent) => {
                 let output = '';
                 for (const block of structuredContent) {
-                    if (block.type === 'p') output += this.codec.computeTo('MD', block.content, block.layout) + '\n\n'
+                    if (block.type === 'p') output = output + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (block.type === 'ul') {
+                        output = output + block.content.map((item, i) => {return '* ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
+                    }
+                    if (block.type === 'ol') {
+                        output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
+                    }
                 }
+                console.log(output);
                 return output;
             },
         };
