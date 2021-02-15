@@ -26,10 +26,10 @@
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-undo"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-redo"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button"><i class="mdi mdi-text-subject"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-1"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-2"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-header-3"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('p')"><i class="mdi mdi-text-subject"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h1')"><i class="mdi mdi-format-header-1"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h2')"><i class="mdi mdi-format-header-2"/></button>
+            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h3')"><i class="mdi mdi-format-header-3"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('b') : null"><i class="mdi mdi-format-bold"/></button>
             <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('i') : null"><i class="mdi mdi-format-italic"/></button>
@@ -39,8 +39,8 @@
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-square-root"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-link"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button"><i class="mdi mdi-format-list-bulleted"/></button>
-            <button class="MDEditor__button"><i class="mdi mdi-format-list-numbered"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('ul')"><i class="mdi mdi-format-list-bulleted"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('ol')"><i class="mdi mdi-format-list-numbered"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-quote-close"/></button>
@@ -111,6 +111,7 @@
     import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
     import { uuidv4 } from '@/lib/generators.js'
+    import { splitArray } from '@/lib/utils.js'
     import blank from '@/assets/blank-document.png'
 
     export default @Component({
@@ -857,6 +858,28 @@
                 }
                 return block;
             },
+            changeBlockType: (newType) => {
+                const currentBlock = this.structuredContent[this.internal.currentItemIndex];
+                let content = currentBlock.content;
+                let layout = currentBlock.layout;
+                if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
+                    content = content.join('\n');
+                    layout.forEach((elt) => elt.push('r'));
+                    layout = layout.flat()
+                }
+
+                currentBlock.type = newType;
+                if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
+                    currentBlock.content = content.split('\n');
+                    currentBlock.layout = splitArray(layout, 'r');
+                }
+                else {
+                    currentBlock.content = content.replaceAll('\n', '');
+                    currentBlock.layout = layout;
+                }
+                currentBlock.layout = currentBlock.layout.filter(rule => rule !== 'r');
+                this.blocks.computeBlock(currentBlock);
+            }
         };
 
         /**
