@@ -357,8 +357,7 @@
                     }
                     lastRule = rule;
                 }
-                const result = this.codec.tags[lastRule][format][0] + computed
-                console.log(result);
+                const result = this.codec.tags[lastRule][format][0] + computed;
                 return result
             },
             /** MarkDown to structured content array **/
@@ -421,7 +420,6 @@
 
                     /** If a new block is detected (currentType is null) add the currentBlockContent to the structuredContent **/
                     if (!currentType) {
-                        console.log(previousType);
                         if (previousType && previousType === 'p') {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.paragraph(currentBlockContent));
                         }
@@ -442,7 +440,7 @@
                 for (const block of structuredContent) {
                     if (block.type === 'p') output = output + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                     if (block.type === 'ul') {
-                        output = output + block.content.map((item, i) => {return '* ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
+                        output = output + block.content.map((item, i) => {return '- ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }
                     if (block.type === 'ol') {
                         output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
@@ -672,7 +670,7 @@
                     // Here if we use the selection start as caretPos, the editor loose correct caret position on fast typing
                     const caretPos = this.internal._getCaretPosition(target);
                     let currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
-                    this.blocks.insertAt(this.internal.currentItemIndex, selection.start, key, null, selection.itemIndex);
+                    this.blocks.insertAt(this.internal.currentItemIndex, caretPos.start, key, null, selection.itemIndex);
                     this.internal._setCaretPosition(currentBlock, caretPos.start + 1, selection.itemIndex);
                 },
                 onDragSelection: () => {
@@ -708,17 +706,19 @@
                 //get selection, update structuredcontent layout and compute structuredcontent
                 const selection = this.internal.selection;
                 let currentBlock = this.structuredContent[selection.blockIndex];
-                for (let i = selection.start; i < selection.end; i++) {
-                    if (currentBlock.layout[i] === format) currentBlock.layout.splice(i, 1, '-');
-                    else currentBlock.layout.splice(i, 1, format);
+                if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
+                    for (let i = selection.start; i < selection.end; i++) {
+                        if (currentBlock.layout[selection.itemIndex][i] === format) currentBlock.layout[selection.itemIndex].splice(i, 1, '-');
+                        else currentBlock.layout[selection.itemIndex].splice(i, 1, format);
+                    }
                 }
-                this.structuredContent.splice(this.internal.currentItemIndex, 1, {
-                    id: currentBlock.id,
-                    type: currentBlock.type,
-                    content: currentBlock.content,
-                    layout: currentBlock.layout,
-                    computed: this.codec.computeTo('HTML', currentBlock.content, currentBlock.layout)
-                });
+                else {
+                    for (let i = selection.start; i < selection.end; i++) {
+                        if (currentBlock.layout[i] === format) currentBlock.layout.splice(i, 1, '-');
+                        else currentBlock.layout.splice(i, 1, format);
+                    }
+                }
+                this.structuredContent.splice(this.internal.currentItemIndex, 1, this.blocks.computeBlock(currentBlock));
             },
         };
 
@@ -792,8 +792,9 @@
 
                 if (['ul', 'ol'].indexOf(precedentBlock.type) !== -1) {
                     if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
-                        precedentBlock.content[precedentBlock.content.length - 1] += currentBlock.content.join(' ');
-                        precedentBlock.layout[precedentBlock.layout.length - 1].push(...[].concat.apply([], precedentBlock.layout));
+                        precedentBlock.content[precedentBlock.content.length - 1] += currentBlock.content.join('');
+
+                        precedentBlock.layout[precedentBlock.layout.length - 1].push(...[].concat.apply([], currentBlock.layout));
                     }
                     else {
                         precedentBlock.content[precedentBlock.content.length - 1] += currentBlock.content;
@@ -802,7 +803,7 @@
                 }
                 else {
                     if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
-                        precedentBlock.content += currentBlock.content.join(' ');
+                        precedentBlock.content += currentBlock.content.join('');
                         precedentBlock.layout.push(...[].concat.apply([], precedentBlock.layout));
                     }
                     else {
@@ -865,7 +866,8 @@
                 if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
                     content = content.join('\n');
                     layout.forEach((elt) => elt.push('r'));
-                    layout = layout.flat()
+                    layout = layout.flat();
+                    layout.splice(-1, 1);
                 }
 
                 currentBlock.type = newType;
@@ -874,10 +876,9 @@
                     currentBlock.layout = splitArray(layout, 'r');
                 }
                 else {
-                    currentBlock.content = content.replaceAll('\n', '');
-                    currentBlock.layout = layout;
+                    currentBlock.content = content.replace(/\n/g, '');
+                    currentBlock.layout = layout.filter(rule => rule !== 'r');
                 }
-                currentBlock.layout = currentBlock.layout.filter(rule => rule !== 'r');
                 this.blocks.computeBlock(currentBlock);
             }
         };
@@ -938,7 +939,7 @@
     }
 </script>
 <style lang="stylus">
-@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');
+/*@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');*/
 resetButton()
     background transparent
     border-color transparent

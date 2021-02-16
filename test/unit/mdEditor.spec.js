@@ -2,7 +2,7 @@ import Vue from 'vue'
 import { mount, shallowMount } from '@vue/test-utils'
 import { expect } from 'chai'
 import MDEditor from "@/components/mdEditor.vue";
-import {NEW_BLOCK, P, FULL_MD} from "./constants";
+import {NEW_BLOCK, P, UL, OL, FULL_MD} from "./constants";
 
 describe('MDEditor', () => {
     xit('should create a block for each MarkDown formatted type', done => {
@@ -48,7 +48,7 @@ describe('MDEditor', () => {
 });
 
 describe('MDEditor.codec', () => {
-    it('should correctly define Markdown block type', done => {
+    xit('should correctly define Markdown block type', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
@@ -72,7 +72,7 @@ describe('MDEditor.codec', () => {
             /** structuredContent **/
             expect(wrapper.vm.structuredContent[0].content).to.be.equal(P[1].content);
             expect(wrapper.vm.structuredContent[0].type).to.be.equal(P[1].type);
-            expect(wrapper.vm.structuredContent[0].layout).deep.to.be.equal(P[1].layout);
+            expect(wrapper.vm.structuredContent[0].layout).to.be.deep.equal(P[1].layout);
             expect(wrapper.vm.structuredContent[0].computed).to.be.equal(P[1].computed);
 
             /** HTML **/
@@ -117,6 +117,63 @@ describe('MDEditor.codec', () => {
         })
     });
 
+    // List
+    it('should encode <ul> from Markdown', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': UL[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            /** structuredContent **/
+            expect(wrapper.vm.structuredContent[0].content).to.be.deep.equal(UL[1].content);
+            expect(wrapper.vm.structuredContent[0].type).to.be.equal(UL[1].type);
+            expect(wrapper.vm.structuredContent[0].layout).to.be.deep.equal(UL[1].layout);
+            expect(wrapper.vm.structuredContent[0].computed).to.be.deep.equal(UL[1].computed);
+
+            /** HTML **/
+            let mdContent = wrapper.findAll('.MDEditor__content');
+            expect(mdContent.at(0).element.tagName).to.be.equal('UL');
+            expect(mdContent.at(0).text()).to.be.equal(UL[1].content.join(''));
+            done();
+        })
+    });
+    it('should decode Markdown from <ul>', () => {
+        let wrapper = mount(MDEditor);
+        let structuredContent = [UL[1]];
+        const md = wrapper.vm.codec.decodeMDFrom(structuredContent);
+
+        expect(md).to.be.equal("- First i**tem**\n- Secon*d* item\n- Third item\n\n")
+    });
+    it('should encode <ol> from Markdown', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': OL[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            /** structuredContent **/
+            expect(wrapper.vm.structuredContent[0].content).to.be.deep.equal(OL[1].content);
+            expect(wrapper.vm.structuredContent[0].type).to.be.equal(OL[1].type);
+            expect(wrapper.vm.structuredContent[0].layout).to.be.deep.equal(OL[1].layout);
+            expect(wrapper.vm.structuredContent[0].computed).to.be.deep.equal(OL[1].computed);
+
+            /** HTML **/
+            let mdContent = wrapper.findAll('.MDEditor__content');
+            expect(mdContent.at(0).element.tagName).to.be.equal('OL');
+            expect(mdContent.at(0).text()).to.be.equal(OL[1].content.join(''));
+            done();
+        })
+    });
+    it('should decode Markdown from <ul>', () => {
+        let wrapper = mount(MDEditor);
+        let structuredContent = [OL[1]];
+        const md = wrapper.vm.codec.decodeMDFrom(structuredContent);
+
+        expect(md).to.be.equal("1. First item\n2. Second item\n3. Third item\n\n")
+    });
 });
 
 describe('MDEditor.blocks', () => {
@@ -126,29 +183,27 @@ describe('MDEditor.blocks', () => {
                 'value': FULL_MD[0]
             }
         });
-
         Vue.nextTick(() => {
-            expect(wrapper.vm.blocks.getBlockIndex(wrapper.vm.structuredContent[0].id)).to.be.equal(0);
-            expect(wrapper.vm.blocks.getBlockIndex(wrapper.vm.structuredContent[1].id)).to.be.equal(1);
-            expect(wrapper.vm.blocks.getBlockIndex(wrapper.vm.structuredContent[2].id)).to.be.equal(2);
-            expect(wrapper.vm.blocks.getBlockIndex(wrapper.vm.structuredContent[3].id)).to.be.equal(3);
+            for (let i=0; i<=FULL_MD[1].length; i++) {
+                expect(wrapper.vm.blocks.getBlockIndex(wrapper.vm.structuredContent[i].id)).to.be.equal(i);
+            }
             expect(wrapper.vm.blocks.getBlockIndex('Wrong id')).to.be.equal(-1);
             done();
         })
     });
 
-    it('should change the currentItemIndex on select block', done => {
-        let wrapper = mount(MDEditor, {
-            propsData: {
-                'value': FULL_MD[0]
-            }
-        });
-
-        Vue.nextTick(() => {
-            expect(true).to.be.equal(true);
-            done();
-        })
-    });
+    // it('should change the currentItemIndex on select block', done => {
+    //     let wrapper = mount(MDEditor, {
+    //         propsData: {
+    //             'value': FULL_MD[0]
+    //         }
+    //     });
+    //
+    //     Vue.nextTick(() => {
+    //         expect(true).to.be.equal(true);
+    //         done();
+    //     })
+    // });
 
     it('should allow to add a block', done => {
         let wrapper = mount(MDEditor, {
@@ -159,7 +214,7 @@ describe('MDEditor.blocks', () => {
 
         Vue.nextTick(() => {
             wrapper.vm.blocks.addBlock(2);
-            expect(wrapper.vm.structuredContent.length).to.be.equal(5);
+            expect(wrapper.vm.structuredContent.length).to.be.equal(9);
             expect(wrapper.vm.structuredContent[2].content).to.be.equal(NEW_BLOCK[1].content);
             expect(wrapper.vm.structuredContent[2].type).to.be.equal(NEW_BLOCK[1].type);
             expect(wrapper.vm.structuredContent[2].layout).to.be.deep.equal(NEW_BLOCK[1].layout);
@@ -177,7 +232,7 @@ describe('MDEditor.blocks', () => {
 
         Vue.nextTick(() => {
             wrapper.vm.blocks.deleteBlockAt(2);
-            expect(wrapper.vm.structuredContent.length).to.be.equal(3);
+            expect(wrapper.vm.structuredContent.length).to.be.equal(7);
             expect(wrapper.vm.structuredContent[2].content).to.be.equal(FULL_MD[1][3].content);
             expect(wrapper.vm.structuredContent[2].type).to.be.equal(FULL_MD[1][3].type);
             expect(wrapper.vm.structuredContent[2].layout).to.be.deep.equal(FULL_MD[1][3].layout);
@@ -211,14 +266,35 @@ describe('MDEditor.blocks', () => {
             }
         });
         Vue.nextTick(() => {
+            // p block
+            let newText = FULL_MD[1][3].content;
+            let newLayout = FULL_MD[1][3].layout;
+            let newComputed = FULL_MD[1][3].computed;
+
             wrapper.vm.blocks.insertAt(3, 5, ' new text', ['-', 'u', 'u', '-', 'i', 'i', '-', 'b', 'b']);
-            const newText = FULL_MD[1][3].content.slice(0, 5) + ' new text' + FULL_MD[1][3].content.slice(5, FULL_MD[1][1].content.length);
-            const newLayout = FULL_MD[1][3].layout;
+
+            newText = newText.slice(0, 5) + ' new text' + newText.slice(5, newText.length);
             newLayout.splice(5, 0, ...['-', 'u', 'u', '-', 'i', 'i', '-', 'b', 'b']);
-            const newComputed = FULL_MD[1][3].computed.slice(0, 5) + ' <u>ne</u>w<i> t</i>e<b>xt</b>' + FULL_MD[1][3].computed.slice(5);
+            newComputed = newComputed.slice(0, 5) + ' <u>ne</u>w<i> t</i>e<b>xt</b>' + newComputed.slice(5);
+
             expect(wrapper.vm.structuredContent[3].content).to.be.equal(newText);
             expect(wrapper.vm.structuredContent[3].layout).to.be.deep.equal(newLayout);
             expect(wrapper.vm.structuredContent[3].computed).to.be.equal(newComputed);
+
+            // list block
+            newText = FULL_MD[1][5].content;
+            newLayout = FULL_MD[1][5].layout;
+            newComputed = FULL_MD[1][5].computed;
+
+            wrapper.vm.blocks.insertAt(5, 2, ' new text', ['-', 'u', 'u', '-', 'i', 'i', '-', 'b', 'b'], 2);
+
+            newText[2] = newText[2].slice(0, 2) + ' new text' + newText[2].slice(2, newText[2].length);
+            newLayout[2].splice(2, 0, ...['-', 'u', 'u', '-', 'i', 'i', '-', 'b', 'b']);
+            newComputed[2] = newComputed[2].slice(0, 2) + ' <u>ne</u>w<i> t</i>e<b>xt</b>' + newComputed[2].slice(2);
+
+            expect(wrapper.vm.structuredContent[5].content).to.be.deep.equal(newText);
+            expect(wrapper.vm.structuredContent[5].layout).to.be.deep.equal(newLayout);
+            expect(wrapper.vm.structuredContent[5].computed).to.be.deep.equal(newComputed);
             done();
         })
     });
@@ -235,7 +311,31 @@ describe('MDEditor.blocks', () => {
             expect(wrapper.vm.structuredContent[2].content).to.be.equal('codé ue');
             expect(wrapper.vm.structuredContent[2].layout).to.be.deep.equal(['-', '-', '-', '-', '-', '-', '-']);
             expect(wrapper.vm.structuredContent[2].computed).to.be.equal('codé ue');
-            expect(true).to.be.equal(true);
+
+            wrapper.vm.blocks.removeAt(5, 2, 5, 2);
+            expect(wrapper.vm.structuredContent[5].content).to.be.deep.equal(['First item', 'Second item', 'Th item']);
+            expect(wrapper.vm.structuredContent[5].layout).to.be.deep.equal([['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-', '-', '-']]);
+            expect(wrapper.vm.structuredContent[5].computed).to.be.deep.equal(['First item', 'Second item', 'Th item']);
+
+            done();
+        })
+    });
+
+    it('should allow to remove item from a list block', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': FULL_MD[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            wrapper.vm.blocks.removeItemAt(5, 2);
+            expect(wrapper.vm.structuredContent[5].content).to.be.deep.equal(['First item', 'Second item']);
+            expect(wrapper.vm.structuredContent[5].layout).to.be.deep.equal([['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]);
+            expect(wrapper.vm.structuredContent[5].computed).to.be.deep.equal(['First item', 'Second item']);
+
             done();
         })
     });
@@ -249,16 +349,44 @@ describe('MDEditor.blocks', () => {
 
         Vue.nextTick(() => {
             wrapper.vm.blocks.mergeBlockWithPrecedent(1);
-            expect( wrapper.vm.structuredContent.length).to.be.equal(3);
+            expect( wrapper.vm.structuredContent.length).to.be.equal(7);
             expect(wrapper.vm.structuredContent[0].content).to.be.equal(FULL_MD[1][0].content + FULL_MD[1][1].content);
             expect(wrapper.vm.structuredContent[0].layout).to.be.deep.equal(FULL_MD[1][0].layout.concat(FULL_MD[1][1].layout));
             // Checking also format merge
             expect(wrapper.vm.structuredContent[0].computed).to.be.equal('Petit éditeur <b>WYSIWYGUti</b>lisable avec du markdown ou du RichText');
+
+            // Checking list behavior
+            wrapper.vm.blocks.mergeBlockWithPrecedent(5);
+            expect( wrapper.vm.structuredContent.length).to.be.equal(6);
+            expect(wrapper.vm.structuredContent[4].content).to.be.deep.equal(['First item', 'Second item', 'Third itemFirst itemSecond itemThird item']);
+            expect(wrapper.vm.structuredContent[4].layout).to.be.deep.equal([['-', '-', '-', '-', '-', '-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-'],
+                ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', 'b', 'b', 'b', '-', '-', '-', '-', '-', 'i', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]);
+            expect(wrapper.vm.structuredContent[4].computed).to.be.deep.equal(['First item', 'Second item', 'Third itemFirst i<b>tem</b>Secon<i>d</i> itemThird item']);
             done();
         })
     });
 
-    it('should allow to split a block', done => {
+    it('should allow to merge an item with the precedent one (list block)', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': FULL_MD[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            wrapper.vm.blocks.mergeItemWithPrecedent(6, 2);
+            expect( wrapper.vm.structuredContent.length).to.be.equal(8);
+            expect(wrapper.vm.structuredContent[6].content).to.be.deep.equal(['First item', 'Second itemThird item']);
+            expect(wrapper.vm.structuredContent[6].layout).to.be.deep.equal([['-', '-', '-', '-', '-', '-', '-', 'b', 'b', 'b'],
+                ['-', '-', '-', '-', '-', 'i', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]);
+            // Checking also format merge
+            expect(wrapper.vm.structuredContent[6].computed).to.be.deep.equal(['First i<b>tem</b>', 'Secon<i>d</i> itemThird item']);
+
+            done();
+        })
+    });
+
+    it('should allow to split a text block', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': FULL_MD[0]
@@ -267,7 +395,7 @@ describe('MDEditor.blocks', () => {
 
         Vue.nextTick(() => {
             wrapper.vm.blocks.splitBlock(0, 17);
-            expect( wrapper.vm.structuredContent.length).to.be.equal(5);
+            expect( wrapper.vm.structuredContent.length).to.be.equal(9);
 
             expect(wrapper.vm.structuredContent[0].content).to.be.equal(FULL_MD[1][0].content.slice(0, 17));
             expect(wrapper.vm.structuredContent[1].content).to.be.equal(FULL_MD[1][0].content.slice(17));
@@ -278,6 +406,71 @@ describe('MDEditor.blocks', () => {
             // Checking also format splitting
             expect(wrapper.vm.structuredContent[0].computed).to.be.equal('Petit éditeur <b>WYS</b>');
             expect(wrapper.vm.structuredContent[1].computed).to.be.equal('<b>IWYG</b>');
+
+            done();
+        })
+    });
+
+    it('should allow to split a list block', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': FULL_MD[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            wrapper.vm.blocks.splitListBlock(6, 5, 1);
+            expect( wrapper.vm.structuredContent.length).to.be.equal(8);
+
+            expect(wrapper.vm.structuredContent[6].content).to.be.deep.equal(['First item', 'Secon','d item', 'Third item']);
+
+            expect(wrapper.vm.structuredContent[6].layout).to.be.deep.equal([['-', '-', '-', '-', '-', '-', '-', 'b', 'b', 'b'], ['-', '-', '-', '-', '-'], ['i', '-', '-', '-', '-', '-'], ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-']]);
+
+            // Checking also format splitting
+            expect(wrapper.vm.structuredContent[6].computed).to.be.deep.equal(['First i<b>tem</b>', 'Secon', '<i>d</i> item', 'Third item']);
+            done();
+        })
+    });
+
+    it('should allow to change a block type', done => {
+        let wrapper = mount(MDEditor, {
+            propsData: {
+                'value': FULL_MD[0]
+            }
+        });
+
+        Vue.nextTick(() => {
+            wrapper.vm.internal.currentItemIndex = 3;
+            wrapper.vm.blocks.changeBlockType( 'ul');
+            expect( wrapper.vm.structuredContent.length).to.be.equal(8);
+
+            expect(wrapper.vm.structuredContent[3].type).to.be.equal('ul');
+            expect(wrapper.vm.structuredContent[3].content).to.be.deep.equal(["Enjoy"]);
+            expect(wrapper.vm.structuredContent[3].layout).to.be.deep.equal([['-', '-', '-', '-', '-']]);
+            expect(wrapper.vm.structuredContent[3].computed).to.be.deep.equal(['Enjoy']);
+
+
+            wrapper.vm.blocks.changeBlockType( 'ol');
+            expect(wrapper.vm.structuredContent[3].type).to.be.equal('ol');
+            expect(wrapper.vm.structuredContent[3].content).to.be.deep.equal(["Enjoy"]);
+            expect(wrapper.vm.structuredContent[3].layout).to.be.deep.equal([['-', '-', '-', '-', '-']]);
+            expect(wrapper.vm.structuredContent[3].computed).to.be.deep.equal(['Enjoy']);
+
+            wrapper.vm.blocks.changeBlockType( 'p');
+            expect(wrapper.vm.structuredContent[3].type).to.be.equal('p');
+            expect(wrapper.vm.structuredContent[3].content).to.be.deep.equal("Enjoy");
+            expect(wrapper.vm.structuredContent[3].layout).to.be.deep.equal(['-', '-', '-', '-', '-']);
+            expect(wrapper.vm.structuredContent[3].computed).to.be.deep.equal('Enjoy');
+
+            wrapper.vm.internal.currentItemIndex = 6;
+            console.log(wrapper.vm.structuredContent[6].content);
+
+            wrapper.vm.blocks.changeBlockType( 'p');
+            expect(wrapper.vm.structuredContent[6].type).to.be.equal('p');
+            expect(wrapper.vm.structuredContent[6].content).to.be.deep.equal('First itemSecond itemThird item');
+            expect(wrapper.vm.structuredContent[6].layout).to.be.deep.equal(['-', '-', '-', '-', '-', '-', '-', 'b', 'b', 'b', '-', '-', '-', '-', '-', 'i', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-']);
+            expect(wrapper.vm.structuredContent[6].computed).to.be.deep.equal('First i<b>tem</b>Secon<i>d</i> itemThird item');
+
             done();
         })
     });

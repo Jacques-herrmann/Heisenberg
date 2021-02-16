@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor v-model="md"></md-editor>
+        <md-editor></md-editor>
     </div>
 </template>
 
@@ -16,6 +16,7 @@
     })
 
      class App extends Vue {
+        test = "- First i**tem**\n* Secon*d* item\n+ Third item\n\n";
         md = `# Petit éditeur Markdown
 
 Voici une liste ordonnée :
