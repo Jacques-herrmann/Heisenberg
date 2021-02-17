@@ -250,14 +250,19 @@
                             }
                             else break
                         }
-                        if (block.childNodes[childIndex] instanceof HTMLElement) {
+                        if (['B', 'I'].indexOf(block.childNodes[childIndex].nodeName) !== -1) {
                             range.setStart(block.childNodes[childIndex].childNodes[0], position);
+                            range.collapse(true);
+                        }
+                        else if (block.childNodes[childIndex].nodeName === "DIV" && block.childNodes[childIndex].getAttribute('MDContent')) {
+                            range.setStart(block.childNodes[childIndex], 0);
+                            range.setEnd(block.childNodes[childIndex], 1);
                         }
                         else {
                             range.setStart(block.childNodes[childIndex], position);
+                            range.collapse(true);
                         }
                     }
-                    range.collapse(true);
                     selection.removeAllRanges();
                     selection.addRange(range);
                 })
@@ -702,7 +707,8 @@
                     }
                 },
                 onArrows: (target, key) => {
-                    const caret = this.internal._getCaretPosition(target);
+                    // const caret = this.internal._getCaretPosition(target);
+                    const caret = {start : this.internal.selection.start, end: this.internal.selection.end }
                     const currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
                     let itemIndex = -1;
                     let precedentBlock = this.internal.currentItemIndex ?
@@ -736,17 +742,17 @@
                             break;
                         case 'ArrowLeft':
                             if (!caret.start && precedentBlock) { /** Change block only if caret is in the beginning of the block**/
-                                let precedentTextLength = precedentBlock.innerText.length;
+                                let precedentTextLength = this.structuredContent[this.internal.currentItemIndex - 1].content.length;
                                 this.internal._setCaretPosition(precedentBlock, precedentTextLength);
                             }
                             else { this.internal._setCaretPosition(target, caret.start - 1); }
                             break;
                         case 'ArrowRight':
-                            let currentTextLength = target.innerText.length
+                            let currentTextLength = this.structuredContent[this.internal.currentItemIndex].content.length;
                             if (caret.end >= currentTextLength && nextBlock) { /** Change block only if caret is in the end of the block**/
                                 this.internal._setCaretPosition(nextBlock);
                             }
-                            else { this.internal._setCaretPosition(target, caret.start + 1); }
+                            else { this.internal._setCaretPosition(target, caret.end + 1); }
                             break;
                     }
                 },

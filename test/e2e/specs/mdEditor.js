@@ -46,15 +46,16 @@ describe('MDEditor.ui', () => {
             .keys(browser.Keys.ENTER)
             .keys('End of the list !')
             .keys(browser.Keys.ENTER)
-            .keys('And Here is a formula : f(x) = ax^2 + b')
+            .keys('And Here is a formula f = ax + b')
             .pause(100)
         // Select Text
         editor.api.elements('@content', (blocks) => {
             browser
-                .moveTo(blocks.result.value[5].ELEMENT, 45, 0)
+                .moveTo(blocks.result.value[5].ELEMENT, 155, 0)
                 .mouseButtonDown(0)
-                .moveTo(blocks.result.value[5].ELEMENT, 100, 0)
-                .mouseButtonUp(0).pause(1000)
+                .moveTo(blocks.result.value[5].ELEMENT, 250, 0)
+                .mouseButtonUp(0)
+                .pause(100)
         });
         // Click on Formula button
         editor.expect.element('@formatButton').to.be.present;
@@ -69,8 +70,9 @@ describe('MDEditor.ui', () => {
 
         // Select the third block (End of block)
         editor.api.elements('@block', (blocks) => {
-            browser.elementIdClick(blocks.result.value[2].ELEMENT).pause(1000)
+            browser.elementIdClick(blocks.result.value[2].ELEMENT)
         });
+
         // Test simple Arrow navigation
         browser.keys(browser.Keys.LEFT_ARROW);
         editor.api.element('@selectedBlock', (block) => {
@@ -84,6 +86,7 @@ describe('MDEditor.ui', () => {
                 browser.assert.equal(blocks.result.value[2].ELEMENT, block.value)
             })
         });
+
         // Test changing selected block with arrow
         browser.keys(browser.Keys.RIGHT_ARROW);
         editor.api.element('@selectedBlock', (block) => {
@@ -112,13 +115,23 @@ describe('MDEditor.ui', () => {
                 browser.assert.equal(blocks.result.value[3].ELEMENT, block.value)
             })
         });
-
         browser.keys(browser.Keys.LEFT_ARROW);
         editor.api.element('@selectedBlock', (block) => {
             editor.api.elements('@block', (blocks) => {
                 browser.assert.equal(blocks.result.value[2].ELEMENT, block.value)
             });
         });
+
+        // Test arrow navigation around formula
+       editor.api.elements('@block', (blocks) => {
+           browser
+               .elementIdClick(blocks.result.value[5].ELEMENT)
+        });
+        browser.keys(browser.Keys.LEFT_ARROW).pause(2000);
+        editor.expect.element('@formulaEdit').to.be.present;
+        browser.keys(browser.Keys.LEFT_ARROW).pause(2000);
+        editor.expect.element('@formulaEdit').to.not.be.present;
+
         browser.end;
     });
 

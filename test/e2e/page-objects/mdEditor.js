@@ -31,11 +31,11 @@ module.exports = {
           locateStrategy: 'css selector',
         },
         formulaEdit: {
-          selector: 'MDEditor__formula-edit__input-wrap > input',
+          selector: '.MDEditor__formula-edit__input-wrap > input',
           locateStrategy: 'css selector',
         },
         formulaButton: {
-          selector: 'MDEditor__formula-edit > button',
+          selector: '.MDEditor__formula-edit > button',
           locateStrategy: 'css selector',
         },
         block: {
