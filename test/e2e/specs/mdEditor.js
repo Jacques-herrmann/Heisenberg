@@ -160,7 +160,7 @@ describe('MDEditor.ui', () => {
             browser
                 .elementIdClick(blocks.result.value[3].ELEMENT)
                 .keys(browser.Keys.HOME)
-                .keys(browser.Keys.BACK_SPACE).pause(1000);
+                .keys(browser.Keys.BACK_SPACE).pause(2000);
         });
 
         // Check the result
@@ -180,7 +180,7 @@ describe('MDEditor.ui', () => {
                 .elementIdClick(blocks.result.value[2].ELEMENT)
                 .keys(browser.Keys.UP_ARROW)
                 .keys(browser.Keys.HOME)
-                .keys(browser.Keys.BACK_SPACE).pause(1000);
+                .keys(browser.Keys.BACK_SPACE).pause(2000);
         });
         // Check the result
         editor.api.elements('@content', (blocks) => {

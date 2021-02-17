@@ -917,7 +917,7 @@
                 else {
                     if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
                         precedentBlock.content += currentBlock.content.join('');
-                        precedentBlock.layout.push(...[].concat.apply([], precedentBlock.layout));
+                        precedentBlock.layout.push(...[].concat.apply([], currentBlock.layout));
                     }
                     else {
                         precedentBlock.content += currentBlock.content;

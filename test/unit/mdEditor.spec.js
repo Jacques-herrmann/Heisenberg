@@ -463,7 +463,6 @@ describe('MDEditor.blocks', () => {
             expect(wrapper.vm.structuredContent[3].computed).to.be.deep.equal('Enjoy');
 
             wrapper.vm.internal.currentItemIndex = 6;
-            console.log(wrapper.vm.structuredContent[6].content);
 
             wrapper.vm.blocks.changeBlockType( 'p');
             expect(wrapper.vm.structuredContent[6].type).to.be.equal('p');
