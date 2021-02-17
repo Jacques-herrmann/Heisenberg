@@ -45,7 +45,22 @@ describe('MDEditor.ui', () => {
             .keys(browser.Keys.ENTER)
             .keys(browser.Keys.ENTER)
             .keys('End of the list !')
+            .keys(browser.Keys.ENTER)
+            .keys('And Here is a formula : f(x) = ax^2 + b')
             .pause(100)
+        // Select Text
+        editor.api.elements('@content', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[5].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[5].ELEMENT, 100, 0)
+                .mouseButtonUp(0).pause(1000)
+        });
+        // Click on Formula button
+        editor.expect.element('@formatButton').to.be.present;
+        editor.api.elements('@formatButton', (buttons) => {
+            editor.api.elementIdClick(buttons.result.value[5].ELEMENT)
+        });
     });
 
     it('should allow user to switch block with arrow key', (browser) => {

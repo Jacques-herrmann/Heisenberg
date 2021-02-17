@@ -30,6 +30,14 @@ module.exports = {
           selector: '.MDEditor__format-text-button',
           locateStrategy: 'css selector',
         },
+        formulaEdit: {
+          selector: 'MDEditor__formula-edit__input-wrap > input',
+          locateStrategy: 'css selector',
+        },
+        formulaButton: {
+          selector: 'MDEditor__formula-edit > button',
+          locateStrategy: 'css selector',
+        },
         block: {
           selector: '.MDEditor__md-block',
           locateStrategy: 'css selector',
