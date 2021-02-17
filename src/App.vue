@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 
@@ -19,27 +19,14 @@
         test = "- First i**tem**\n* Secon*d* item\n+ Third item\n\n";
         md = `# Petit éditeur Markdown
 
-Voici une liste ordonnée :
+Voici une formule : $f(x) = \\int_{-\\infty}^\\infty f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi$ etetete
 
-1. First item
-2. Second item
-5. Third item
-4. Fourth item
-9. Fifth item
-
-- First i**tem**
-- Second item
-* Third item
-* Fourt*h ite*m
-* Fifth item
+et $f(x) = ax +3$
 
 ## Introduction
 
-**Markdown** est un langage de balisage léger permettant de créer du texte formaté à l' aide d'un éditeur de texte brut. *John Gruber* et *Aaron Swartz* ont créé Markdown en 2004 en tant que langage de balisage qui séduit les lecteurs humains sous sa forme de code source. Markdown est largement utilisé dans les blogs , la messagerie instantanée , les forums en ligne , les logiciels collaboratifs , les pages de documentation et les fichiers README .
-Vous pouvez retrouver l'ensemble des règles de synthaxe via ce lien [Syntaxe Markdown](https://www.markdownguide.org/basic-syntax/)
-
-
-
+**Markdown** est un language de balisage léger permettant de créer du texte formaté à l' aide d'un éditeur de texte brut. *John Gruber* et *Aaron Swartz* ont créé Markdown en 2004 en tant que langage de balisage qui séduit les lecteurs humains sous sa forme de code source. Markdown est largement utilisé dans les blogs , la messagerie instantanée , les forums en ligne , les logiciels collaboratifs , les pages de documentation et les fichiers README .
+Vous pouvez retrouver l'ensemble des règles de syntaxe via ce lien [Syntaxe Markdown](https://www.markdownguide.org/basic-syntax/)
 
 ## Titres
 
@@ -52,6 +39,22 @@ Vous pouvez retrouver l'ensemble des règles de synthaxe via ce lien [Syntaxe Ma
 ## Avertissements
 
 ## Listes
+
+Voici une liste ordonnée :
+
+1. First item
+2. Second item
+5. Third item
+4. Fourth item
+9. Fifth item
+
+Et une non ordonnée :
+
+- First i**tem**
+- Second item
+* Third item
+* Fourt*h ite*m
+* Fifth item
 
 ## Tableau
 
@@ -120,7 +123,7 @@ Vous pouvez retrouver l'ensemble des règles de synthaxe via ce lien [Syntaxe Ma
 
 ### Formule mathématique
 
-$$f(x) = ax +3$$
+$f(x) = ax +3$
 
 
         `;

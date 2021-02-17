@@ -1,6 +1,6 @@
 <!--TODO :
     - Add a props to choose the v-model input format (RichText or MD)
-    - Create class to improve block management and to refactor code
+    - Create classes to improve block management and to refactor code !!
     - Need to find a solution for drag and drop handle
 -->
 
@@ -8,7 +8,7 @@
     <div class="MDEditor" id="MDEditor">
         <transition name="fade">
             <div class="MDEditor__format-text"
-                 v-if="internal.selection.content"
+                 v-if="internal.selection.content && internal.selection.type === 'text'"
                  :style="'top: ' + internal.selection.posY + 'px; left:'  + internal.selection.posX + 'px'"
             >
                 <div class="MDEditor__format-text-pointer"/>
@@ -20,8 +20,17 @@
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('f')"><i class="mdi mdi-square-root"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('l')"><i class="mdi mdi-link"/></button>
             </div>
+            <div class="MDEditor__formula-edit"
+                 v-if="internal.formulaEditVisible"
+                 :style="'top: ' + internal.selection.posY + 'px; left:'  + internal.selection.posX + 'px'"
+            >
+                <span class="MDEditor__formula-edit__input-wrap">
+                    <input type="text" v-model="internal.formulaEditContent"/>
+                    <span aria-hidden="true">{{internal.formulaEditContent}}</span>
+                </span>
+                <button @click="ui.updateFormula()">OK</button>
+            </div>
         </transition>
-
         <div class="MDEditor__controls">
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-undo"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-redo"/></button>
@@ -110,6 +119,7 @@
     import Vue from 'vue'
     import { Component, Watch } from 'vue-property-decorator'
     import draggable from 'vuedraggable'
+    import { renderToString } from 'katex'
     import { uuidv4 } from '@/lib/generators.js'
     import { splitArray } from '@/lib/utils.js'
     import blank from '@/assets/blank-document.png'
@@ -142,7 +152,10 @@
             },
             currentItemIndex: 1,
             drag: false,
+            formulaEditVisible: false,
+            formulaEditContent: "",
             selection: {
+                type: 'text',
                 blockIndex: null,
                 itemIndex: null,
                 start: null,
@@ -159,18 +172,43 @@
                 let start = 0;
                 let end = 0;
                 let sel, range;
+                let child = null;
 
                 if (window.getSelection) {
                     sel = window.getSelection();
                     if (sel.rangeCount) {
                         range = sel.getRangeAt(0);
-                        const preCaretRange = range.cloneRange();
-                        preCaretRange.selectNodeContents(block);
-                        preCaretRange.setEnd(range.startContainer, range.startOffset);
-                        // if (!preCaretRange.toString()) preCaretRange.setStart(range.startContainer, 0);
-                        start = preCaretRange.toString().length;
-                        preCaretRange.setEnd(range.endContainer, range.endOffset);
-                        end = preCaretRange.toString().length;
+                        for (let i = 0; i < block.childNodes.length; i++) {
+                            child = block.childNodes[i];
+                            if (['B', 'I'].indexOf(child.nodeName) !== -1) child = child.firstChild; //Emphasis
+                            if (child === range.startContainer) { start = start + range.startOffset; break; }
+
+                            if (child.nodeName === "DIV" && child.getAttribute('MDContent')) {  // Formula block
+                                start = start + child.getAttribute('MDContent').length
+                            }
+                            else {
+                                start = start + child.length;
+                            }
+                        }
+                        for (let i = 0; i < block.childNodes.length; i++) {
+                            child = block.childNodes[i];
+                            if (['B', 'I'].indexOf(child.nodeName) !== -1) child = child.firstChild; //Emphasis
+                            if (child === range.startContainer){ end = end + range.endOffset; break; }
+
+                            if (child.nodeName === "DIV" && child.getAttribute('MDContent')) {  // Formula block
+                                end = end + child.getAttribute('MDContent').length
+                            }
+                            else end = end + child.length;
+                        }
+
+                        // const preCaretRange = range.cloneRange();
+                        // preCaretRange.selectNodeContents(block);
+                        // preCaretRange.setEnd(range.startContainer, range.startOffset);
+                        // // if (!preCaretRange.toString()) preCaretRange.setStart(range.startContainer, 0);
+                        // console.log(preCaretRange.toString());
+                        // start = preCaretRange.toString().length;
+                        // preCaretRange.setEnd(range.endContainer, range.endOffset);
+                        // end = preCaretRange.toString().length;
                     }
                 }
                 else if (document.selection && document.selection.createRange) {
@@ -195,7 +233,8 @@
                         // Retrieve the childNodes and childNodes offset to target
                         for (let i=0; i < block.childNodes.length; i++) {
                             let content = block.childNodes[i];
-                            if (content instanceof HTMLElement) content = content.innerText;
+                            if (['B', 'I'].indexOf(content.nodeName) !== -1) content = content.innerText;
+                            if (content.nodeName === "DIV" && content.getAttribute('MDContent')) content = content.getAttribute('MDContent');
                             if (content.length < position) {
                                 // If current childNode length smaller than specified position
                                 if (i === block.childNodes.length - 1) {
@@ -226,12 +265,14 @@
             /*-------------------------------------------------------------------------------------------*/
             updateSelection: (event) => {
                 const selection = window.getSelection();
+                let content = selection.toString();
                 const coordinate = selection.getRangeAt(0).getBoundingClientRect();
                 const currentBlock = event.currentTarget.activeElement;
-                const caret = this.internal._getCaretPosition(currentBlock);
+                let caret = this.internal._getCaretPosition(currentBlock);
                 let blockID = currentBlock.parentNode.id;
                 let itemIndex = -1;
                 let layout = null;
+                let type = 'text';
                 if (!blockID) { // Case list
                     blockID = currentBlock.dataset['blockId'];
                     itemIndex = parseInt(currentBlock.dataset['itemIndex']);
@@ -246,16 +287,32 @@
                     }
                 }
 
+                if (selection.baseNode.className === "MDEditor__formula") {
+                    type = 'formula';
+                    content = selection.baseNode.getAttribute("MDContent");
+                    caret = {
+                        start: parseInt(selection.baseNode.getAttribute("start")),
+                        end: parseInt(selection.baseNode.getAttribute("end"))
+                    };
+                    this.internal.formulaEditContent = content;
+                    this.internal.formulaEditVisible = true;
+                }
+                else {
+                    this.internal.formulaEditContent = "";
+                    this.internal.formulaEditVisible = false;
+                }
+
                 this.internal.currentItemIndex = blockIndex;
                 this.internal.selection = {
                     blockIndex: blockIndex,
+                    type: type,
                     itemIndex: itemIndex,
                     start: caret.start,
                     end: caret.end,
-                    content: selection.toString(),
+                    content: content,
                     layout: layout,
                     posX: coordinate.left - 105 + coordinate.width/2, // 105 is the menu length/2
-                    posY: coordinate.top - 45
+                    posY: coordinate.top - 45 + window.scrollY
                 }
             },
         };
@@ -310,6 +367,7 @@
                 'i': { MD: ['*', '*'], HTML: ['<i>', '</i>']},
                 'b': { MD: ['**', '**'], HTML: ['<b>', '</b>']},
                 's': { MD: ['~~', '~~'], HTML: ['<s>', '</s>']},
+                'f': { MD: ['$', '$'], HTML: ['', '']},
             },
             styles: {
                 underline: /__(\S(.*?\S)?)__/gm,            // __.......__
@@ -337,28 +395,59 @@
                 getFormat(this.codec.styles.italic, 'i', 1);
                 getFormat(this.codec.styles.bold, 'b', 2);
                 getFormat(this.codec.styles.strike, 's', 2);
-                return layout.filter(rule => rule !== 'r')
+                getFormat(this.codec.styles.formula, 'f', 1);
+                layout = layout.filter(rule => rule !== 'r');
+                if (layout[layout.length - 1] === 'f') layout.push('-'); // Create a empty span after formula
+                return layout
             },
             getContent: (md) => {
                 let content = md.replace(this.codec.styles.bold, '$1');
                 content = content.replace(this.codec.styles.italic, '$1');
+                content = content.replace(this.codec.styles.strike, '$1');
+                if (content.endsWith('$')) content = content + ' '; // Create a empty span after formula
+                content = content.replace(this.codec.styles.formula, '$1');
                 return content
             },
             computeTo: (format, content, layout) => {
                 // format = MD or HTML
-                let computed = content;
-                let lastRule = '-';
-                for (let i = layout.length - 1; i >= 0; i--) {
-                    const rule = layout[i];
-                    if (rule !== lastRule) {
-                        computed = computed.slice(0, i + 1) +
-                                   this.codec.tags[rule][format][1] + this.codec.tags[lastRule][format][0] +
-                                   computed.slice(i + 1, computed.length);
+                let computed = '';
+                let rule = null;
+                let start = 0;
+                for (let i = 0; i < layout.length; i++) {
+                    rule = layout[i];
+                    if (i === layout.length - 1 || rule !== layout[i + 1]) {
+                        switch (rule) {
+                            case 'f':
+                                computed = computed + this.codec.computeFormula(format, content, start, i + 1);
+                                break;
+                            default:
+                                computed = computed + this.codec.computeEmphasized(format, content, start, i + 1, rule);
+                        }
+                        start = i + 1;
                     }
-                    lastRule = rule;
                 }
-                const result = this.codec.tags[lastRule][format][0] + computed;
-                return result
+                return computed
+            },
+            computeEmphasized: (format, content, start, end, rule) => {
+                return this.codec.tags[rule][format][0] + content.slice(start, end) + this.codec.tags[rule][format][1];
+            },
+            computeFormula: (format, content, start, end) => {
+                const formula = content.slice(start, end);
+                if (format === 'MD') return '$' + formula + '$';
+
+                let container = document.createElement('div');
+                container.setAttribute('MDContent', formula);
+                container.setAttribute('start', start);
+                container.setAttribute('end', end);
+                container.classList.add('MDEditor__formula');
+
+                let kat = document.createElement('span');
+                kat.innerHTML = renderToString(formula, {throwOnError: false, output: 'html'});
+                kat.setAttribute('contenteditable', false);
+                kat.classList.add('MDEditor__formula--render');
+
+                container.appendChild(kat);
+                return container.outerHTML;
             },
             /** MarkDown to structured content array **/
             parseBlock: {
@@ -430,10 +519,8 @@
                 }
                 return structuredContent;
             },
-
             /** Markdown text to HTML content **/
             encodeHtMLFromText: () => {},
-
             /** Translate structuredContent Array into markdown **/
             decodeMDFrom: (structuredContent) => {
                 let output = '';
@@ -446,7 +533,6 @@
                         output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }
                 }
-                console.log(output);
                 return output;
             },
         };
@@ -709,17 +795,44 @@
                 if (['ul', 'ol'].indexOf(currentBlock.type) !== -1) {
                     for (let i = selection.start; i < selection.end; i++) {
                         if (currentBlock.layout[selection.itemIndex][i] === format) currentBlock.layout[selection.itemIndex].splice(i, 1, '-');
-                        else currentBlock.layout[selection.itemIndex].splice(i, 1, format);
+                        else {
+                            currentBlock.layout[selection.itemIndex].splice(i, 1, format);
+                            if (format === 'f' && selection.end === currentBlock.content[selection.itemIndex].length) {
+                                // Create a empty span after formula
+                                currentBlock.content[selection.itemIndex] = currentBlock.content[selection.itemIndex] + ' ';
+                                currentBlock.layout[selection.itemIndex].push('-')
+                            }
+                        }
                     }
                 }
                 else {
                     for (let i = selection.start; i < selection.end; i++) {
                         if (currentBlock.layout[i] === format) currentBlock.layout.splice(i, 1, '-');
-                        else currentBlock.layout.splice(i, 1, format);
+                        else {
+                            currentBlock.layout.splice(i, 1, format);
+                            if (format === 'f' && selection.end === currentBlock.content.length) {
+                                // Create a empty span after formula
+                                currentBlock.content = currentBlock.content + ' ';
+                                currentBlock.layout.push('-')
+                            }
+                        }
                     }
                 }
                 this.structuredContent.splice(this.internal.currentItemIndex, 1, this.blocks.computeBlock(currentBlock));
             },
+            /** Working with formula edit div **/
+            updateFormula: () => {
+                const selection = this.internal.selection;
+                let newFormula = this.internal.formulaEditContent;
+                const currentBlock = this.$refs[this.structuredContent[this.internal.currentItemIndex].id][0];
+                let layout = Array(newFormula.length).fill('f');
+
+                // Remove old function
+                this.blocks.removeAt(this.internal.currentItemIndex, selection.start, selection.end, selection.itemIndex);
+                // And set the new one
+                this.blocks.insertAt(this.internal.currentItemIndex, selection.start, newFormula, layout, selection.itemIndex);
+                this.internal.formulaEditVisible = false;
+            }
         };
 
         /**
@@ -940,6 +1053,7 @@
 </script>
 <style lang="stylus">
 /*@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');*/
+@import url('https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css');
 resetButton()
     background transparent
     border-color transparent
@@ -947,7 +1061,8 @@ resetButton()
 
 *
     font-family "Rubik"
-
+.katex *
+    white-space nowrap !important
 .MDEditor
     width 840px
     min-height 1000px
@@ -987,6 +1102,42 @@ resetButton()
             border-right 10px solid transparent
             border-top 10px solid #333
 
+    &__formula-edit {
+        height 36px
+        width max-content
+        position absolute
+        z-index 100
+        display flex
+        align-items center
+        border-radius 4px
+        padding 5px 15px
+        background-color #f6f5f5
+        box-shadow 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23)
+        &__input-wrap {
+            position relative
+            height 100%
+            & > span {
+                padding: 0 1rem;
+                visibility hidden
+            }
+            & > input {
+                resetButton()
+                height: 30px
+                width 100%
+                position absolute
+                left 0
+                font-weight normal
+            }
+        }
+        & > button {
+            resetButton()
+            cursor pointer
+            font-weight 500
+            background-color #ADC3D1
+            border-radius 2px
+            margin-left 15px
+        }
+    }
     &__controls
         height 40px
         background #eee
@@ -1040,6 +1191,12 @@ resetButton()
             & i
                 opacity 1
 
+    /** Remove default outline **/
+    & *
+        outline none
+        white-space pre-wrap
+
+
     /** Content type style **/
     &__content
         flex-grow 2
@@ -1047,10 +1204,16 @@ resetButton()
         padding 8px
         margin 0
 
-    /** Remove default outline **/
-    & *
-        outline none
-        white-space pre-wrap
+    &__formula {
+        display inline-block
+        position relative
+        &--render {
+            background-color #f6f5f5
+            border-radius 4px
+            padding 5px 15px
+            user-select all
+        }
+    }
 
     &__no-content
         width 100%
