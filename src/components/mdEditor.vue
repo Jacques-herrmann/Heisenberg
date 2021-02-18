@@ -32,8 +32,8 @@
             </div>
         </transition>
         <div class="MDEditor__controls">
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-undo"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-redo"/></button>
+            <button class="MDEditor__button" @click="history.undoState()"><i class="mdi mdi-undo"/></button>
+            <button class="MDEditor__button" @click="history.redoState()"><i class="mdi mdi-redo"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button" @click="blocks.changeBlockType('p')"><i class="mdi mdi-text-subject"/></button>
             <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h1')"><i class="mdi mdi-format-header-1"/></button>
@@ -1036,10 +1036,33 @@
          * Everything about undo and redo
          **/
         history = {
+            historyIndex: -1,
+            historyLength: 15,
             states: [],
-            storeState: () => {},
-            undoState: () => {},
-            redoState: () => {},
+            storeState: () => {
+                if(JSON.stringify(this.structuredContent) !== JSON.stringify(this.history.states[this.history.historyIndex])) {
+                    const snapshot = JSON.parse(JSON.stringify(this.structuredContent));
+                    if (this.history.historyIndex < this.history.historyLength - 1) {
+                        this.history.historyIndex = this.history.historyIndex + 1;
+                        this.history.states.splice(this.history.historyIndex , this.history.historyLength, snapshot);
+                    } else {
+                        this.history.states.splice(0, 1);
+                        this.history.states.splice(this.history.historyLength, 0, snapshot);
+                    }
+                }
+            },
+            undoState: () => {
+                // Ctrl Z
+                this.history.historyIndex = this.history.historyIndex - 1;
+                this.history.historyIndex = Math.max(0, this.history.historyIndex);
+                this.structuredContent.splice(0, this.structuredContent.length, ...this.history.states[this.history.historyIndex]);
+            },
+            redoState: () => {
+                // Ctrl Y
+                this.history.historyIndex = this.history.historyIndex + 1;
+                this.history.historyIndex = Math.min(this.history.states.length - 1, this.history.historyIndex);
+                this.structuredContent.splice(0, this.structuredContent.length, ...this.history.states[this.history.historyIndex]);
+            },
         };
 
         mounted() {
@@ -1054,6 +1077,7 @@
         @Watch('structuredContent', ({ immediate: true, deep: true }))
         function() {
             this.events.input();
+            this.history.storeState();
         }
     }
 </script>
