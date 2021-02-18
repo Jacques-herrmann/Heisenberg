@@ -36,7 +36,7 @@ Vous trouverez ci-dessous les éléments actuellement disponibles dans cet édit
 
 ## Paragraphe
 
-Un simple paragraphe contenant du texte. Ce texte peut être formaté de quatres façons différentes : **gras** (**), *italique* (*), __souligné__ (__) et ~~barré~~ (~~).
+Un simple paragraphe contenant du texte. Ce texte peut être formaté de quatres façons différentes : **gras** (\*\*), *italique* (\*), __souligné__ (__) et ~~barré~~ (~~).
 
 Vous avez également la possibilité d'ajouter des formules au sein de vos paragraphes. Ces formules doivent être écrites au format Latex et entourées de caractères ($).
 
@@ -54,17 +54,17 @@ Les blocs aussi peuvent avoir une mise en forme particulière, il en existe 4 ty
 
 ### Info
 
-!!!info
+!!! info
 Voici un exemple de bloc INFO, pour l'utiliser, ajoutez la ligne suivante : !!!info , avant le paragraphe
 
 ### Warning
 
-!!!warning
+!!! warning
 Voici un exemple de bloc WARNING, pour l'utiliser, ajoutez la ligne suivante : !!!warning , avant le paragraphe
 
 ### Danger
 
-!!!danger
+!!! danger
 Voici un exemple de bloc DANGER, pour l'utiliser, ajoutez la ligne suivante : !!!danger , avant le paragraphe
 
 ## Listes

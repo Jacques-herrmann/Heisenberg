@@ -1,7 +1,10 @@
 <!--TODO :
     - Add a props to choose the v-model input format (RichText or MD)
     - Create classes to improve block management and to refactor code !!
-    - Need to find a solution for drag and drop handle
+    - Need to find a solution for drag and drop handle (text selection)
+    - Allow escaped characters
+    - Allow table, link and code section
+    - Allow nested list
 -->
 
 <template>
@@ -52,10 +55,10 @@
             <button class="MDEditor__button" @click="blocks.changeBlockType('ol')"><i class="mdi mdi-format-list-numbered"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button"><i class="mdi mdi-format-quote-close"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-note-text"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle-outline"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('quote')"><i class="mdi mdi-format-quote-close"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('info')"><i class="mdi mdi-note-text"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('warning')"><i class="mdi mdi-alert-circle-outline"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('danger')"><i class="mdi mdi-alert-circle"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-image"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-video"/></button>
@@ -97,6 +100,13 @@
                         />
                     </ol>
                     <blockquote class="MDEditor__content" :ref="item.id" v-if="item.type === 'quote'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id"/>
+                    <div v-if="['info', 'warning', 'danger'].indexOf(item.type) !== -1"
+                         :class="'MDEditor__content MDEditor__admonition MDEditor__admonition--' + item.type"
+                    >
+                        <div class="MDEditor__admonition-title"><i class="mdi mdi-note-text"/>{{ item.type }}</div>
+                        <p :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id" :data-item-index="-1"
+                         :ref="item.id"/>
+                    </div>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -276,7 +286,7 @@
                 let itemIndex = -1;
                 let layout = null;
                 let type = 'text';
-                if (!blockID) { // Case list
+                if (!blockID) { // Case list or admonition
                     blockID = currentBlock.dataset['blockId'];
                     itemIndex = parseInt(currentBlock.dataset['itemIndex']);
                 }
@@ -338,7 +348,7 @@
                 // | Paragraph   | Text        |
                 quote: /^\> (.*)/,                                          // > ....
                 // code: /```(.*?)```/,                                     // ``` ....```
-                // admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,                //
+                admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,                   //
                 // image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,                    //
                 // video: /(<video( controls)?( src="([\\\/A-Za-z0-9_:\-\. éèàùêâ~]*)"))>([^<]*)(<\/video>)/,
             },
@@ -355,7 +365,7 @@
                 //
                 !type && md.match(this.codec.pattern.quote) ? type = 'quote': null;
                 // !type && md.match(this.codec.pattern.code) ? type = 'code': null;
-                // !type && md.match(this.codec.pattern.admonition) ? type = 'admonition': null;
+                !type && md.match(this.codec.pattern.admonition) ? type = 'admonition': null;
                 // !type && md.match(this.codec.pattern.image) ? type = 'image': null;
                 // !type && md.match(this.codec.pattern.video) ? type = 'video': null;
 
@@ -505,6 +515,19 @@
                         computed: this.codec.computeTo('HTML', content, layout),
                     }
                 },
+                admonition: (md) => {
+                    md = md.split('\n');
+                    const type = md[0].substr(4);
+                    const content = this.codec.getContent(md[1]);
+                    const layout = this.codec.getLayout(md[1]);
+                    return {
+                        id: uuidv4(),
+                        type: type,
+                        content: content,
+                        layout: layout,
+                        computed: this.codec.computeTo('HTML', content, layout),
+                    }
+                },
 
             },
             encodeFromMD: (md) => {
@@ -551,6 +574,18 @@
                         }
                         else currentBlockContent += md.substr(2);
                     }
+                    else if (currentType && currentType === 'admonition') {
+                        if (!md.length){
+                            previousType = currentType;
+                            currentType = null;
+                        }
+                        else {
+                            currentBlockContent += md;
+                            if(this.codec.pattern.admonition.test(currentBlockContent)){
+                                currentBlockContent += '\n';
+                            }
+                        }
+                    }
 
                     /** If a new block is detected (currentType is null) add the currentBlockContent to the structuredContent **/
                     if (!currentType) {
@@ -565,6 +600,9 @@
                         }
                         else if (previousType && previousType === 'quote') {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.quote(currentBlockContent));
+                        }
+                        else if (previousType && previousType === 'admonition') {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.admonition(currentBlockContent));
                         }
                     }
                 }
@@ -587,6 +625,7 @@
                         output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }
                     if (block.type === 'quote') output = output + '> ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (['info', 'warning', 'danger'].indexOf(block.type) !== -1) output = output + '!!! ' + block.type + '\n' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                 }
                 return output;
             },
@@ -1283,6 +1322,18 @@ resetButton()
     & p
         padding 8px
         margin 0
+
+    &__admonition
+        color white
+        & > div:first-child
+            text-transform uppercase
+            font-weight bold
+        &--info
+            background-color blue
+        &--warning
+            background-color orange
+        &--danger
+            background-color red
 
     &__formula {
         display inline-block
