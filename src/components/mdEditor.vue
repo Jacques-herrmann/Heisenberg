@@ -16,9 +16,9 @@
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('i')"><i class="mdi mdi-format-italic"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('u')"><i class="mdi mdi-format-underline"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('s')"><i class="mdi mdi-format-strikethrough"/></button>
-                <button class="MDEditor__format-text-button" @click="ui.formatSelection('c')"><i class="mdi mdi-code-tags"/></button>
+                <button class="MDEditor__format-text-button MDEditor__button--disabled"><i class="mdi mdi-code-tags"/></button>
                 <button class="MDEditor__format-text-button" @click="ui.formatSelection('f')"><i class="mdi mdi-square-root"/></button>
-                <button class="MDEditor__format-text-button" @click="ui.formatSelection('l')"><i class="mdi mdi-link"/></button>
+                <button class="MDEditor__format-text-button MDEditor__button--disabled"><i class="mdi mdi-link"/></button>
             </div>
             <div class="MDEditor__formula-edit"
                  v-if="internal.formulaEditVisible"
@@ -400,6 +400,7 @@
                 getFormat(this.codec.styles.italic, 'i', 1);
                 getFormat(this.codec.styles.bold, 'b', 2);
                 getFormat(this.codec.styles.strike, 's', 2);
+                getFormat(this.codec.styles.strike, 'u', 2);
                 getFormat(this.codec.styles.formula, 'f', 1);
                 layout = layout.filter(rule => rule !== 'r');
                 if (layout[layout.length - 1] === 'f') layout.push('-'); // Create a empty span after formula
@@ -409,6 +410,7 @@
                 let content = md.replace(this.codec.styles.bold, '$1');
                 content = content.replace(this.codec.styles.italic, '$1');
                 content = content.replace(this.codec.styles.strike, '$1');
+                content = content.replace(this.codec.styles.underline, '$1');
                 if (content.endsWith('$')) content = content + ' '; // Create a empty span after formula
                 content = content.replace(this.codec.styles.formula, '$1');
                 return content
