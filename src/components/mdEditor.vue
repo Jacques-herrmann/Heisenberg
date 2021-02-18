@@ -376,7 +376,7 @@
             },
             styles: {
                 underline: /__(\S(.*?\S)?)__/gm,            // __.......__
-                boldItalic: /\*\*\*(\S(.*?\S)?)\*\*\*/gm,   // ***......***
+                // boldItalic: /\*\*\*(\S(.*?\S)?)\*\*\*/gm,   // ***......***
                 bold: /\*\*(\S(.*?\S)?)\*\*/gm,             // **........**
                 italic: /\*(\S(.*?\S)?)\*/gm,               // *.......*
                 strike: /~~(\S(.*?\S)?)~~/gm,               // ~~.......~~
@@ -388,29 +388,33 @@
             },
             getLayout: (md) => {
                 let layout = Array(md.length).fill('-');
-                function getFormat(re, rplc, lgth) {
+                function getFormat(md, re, rplc, lgth) {
                     let match;
                     while ((match = re.exec(md)) !== null) {
                         layout.fill('r', match.index, match.index + lgth);
                         layout.fill(rplc, match.index + lgth, match.index + match[0].length - lgth);
                         layout.fill('r', match.index + match[0].length - lgth, match.index + match[0].length);
                     }
+
+                    return md.replace(re, (match) => {
+                        const temp = Array(match.length).fill(" ");
+                        return temp.join('')
+                    });
                 }
-                // getFormat(this.codec.styles.underline, 'u', 1);
-                getFormat(this.codec.styles.italic, 'i', 1);
-                getFormat(this.codec.styles.bold, 'b', 2);
-                getFormat(this.codec.styles.strike, 's', 2);
-                getFormat(this.codec.styles.strike, 'u', 2);
-                getFormat(this.codec.styles.formula, 'f', 1);
+                md = getFormat(md, this.codec.styles.underline, 'u', 2);
+                md = getFormat(md, this.codec.styles.bold, 'b', 2);
+                md = getFormat(md, this.codec.styles.italic, 'i', 1);
+                md = getFormat(md, this.codec.styles.strike, 's', 2);
+                getFormat(md, this.codec.styles.formula, 'f', 1);
                 layout = layout.filter(rule => rule !== 'r');
                 if (layout[layout.length - 1] === 'f') layout.push('-'); // Create a empty span after formula
                 return layout
             },
             getContent: (md) => {
-                let content = md.replace(this.codec.styles.bold, '$1');
+                let content = md.replace(this.codec.styles.underline, '$1');
+                content = content.replace(this.codec.styles.bold, '$1');
                 content = content.replace(this.codec.styles.italic, '$1');
                 content = content.replace(this.codec.styles.strike, '$1');
-                content = content.replace(this.codec.styles.underline, '$1');
                 if (content.endsWith('$')) content = content + ' '; // Create a empty span after formula
                 content = content.replace(this.codec.styles.formula, '$1');
                 return content
@@ -1202,7 +1206,7 @@ resetButton()
             cursor pointer
 
         &--disabled
-            opacity 0.5
+            opacity 0.3
             cursor default
             &:hover
                 color #888 !important

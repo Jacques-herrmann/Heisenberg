@@ -5,17 +5,16 @@ const NEW_BLOCK = ['', {
     computed: ''
 }]
 
-const P = ["Je suis un paragraphe avec chaque mise en forme **gras**, *italique*, __underline__, ~~strike~~, $formule$ et `code`!", {
+const P = ["Je suis un paragraphe avec chaque mise en forme **gras**, *italique*, __underline__, ~~strike~~ et code!\n\n", {
     type: 'p',
-    content: 'Je suis un paragraphe avec chaque mise en forme gras, italique, underline, strike, formule et code!',
+    content: 'Je suis un paragraphe avec chaque mise en forme gras, italique, underline, strike et code!',
     layout: ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', "-", "-", "-", "-", "-", //*15
              "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-",
              "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-",
              "-", "-", "-", "b", "b", "b", "b", "-", "-", "i", "i", "i", "i", "i", "i",
              "i", "i", '-', '-', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', 'u', "-", "-",
-             "s", "s", "s", "s", "s", "s", "-", "-", 'f', 'f', 'f', 'f', 'f', 'f', 'f',
-             "-", "-", "-", "-", "c", "c", "c", "c", "-"],
-    computed: 'Je suis un paragraphe avec chaque mise en forme <b>gras</b>, <i>italique</i>, <u>underline</u>, <s>strike</s>, <span>formule</span> et <span>code</span>!'
+             "s", "s", "s", "s", "s", "s", "-", "-", "-", "-", "-", "-", "-", "-", "-"],
+    computed: 'Je suis un paragraphe avec chaque mise en forme <b>gras</b>, <i>italique</i>, <u>underline</u>, <s>strike</s> et code!'
 }];
 
 const UL = ["- First i**tem**\n* Secon*d* item\n+ Third item\n\n", {

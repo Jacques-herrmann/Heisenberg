@@ -61,7 +61,7 @@ describe('MDEditor.codec', () => {
         })
     });
     // Paragraph
-    xit('should encode <p> from Markdown', done => {
+    it('should encode <p> from Markdown', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': P[0]
@@ -82,12 +82,12 @@ describe('MDEditor.codec', () => {
             done();
         })
     });
-    xit('should decode Markdown from <p>', () => {
+    it('should decode Markdown from <p>', () => {
         let wrapper = mount(MDEditor);
         let structuredContent = [P[1]];
         const md = wrapper.vm.codec.decodeMDFrom(structuredContent);
 
-        expect(md).to.be.equal(P[0] + '\n')
+        expect(md).to.be.equal(P[0])
     });
 
     // H1
@@ -503,27 +503,30 @@ describe('MDEditor.importing', () => {
 })
 
 describe('MDEditor.history', () => {
-    xit('should allow user to undo', done => {
+    it('should allow undo and redo snapshots of structuredContent state', done => {
         let wrapper = mount(MDEditor, {
             propsData: {
                 'value': 'Je suis un paragraphe !'
             }
         });
-
         Vue.nextTick(() => {
             expect(true).to.be.equal(true);
-            done();
-        })
-    });
-    xit('should allow user to redo', done => {
-        let wrapper = mount(MDEditor, {
-            propsData: {
-                'value': 'Je suis un paragraphe !'
-            }
-        });
+            expect(wrapper.vm.structuredContent).to.be.deep.equal(wrapper.vm.history.states[0]);
+            expect(wrapper.vm.history.states.length).to.be.equal(1);
 
-        Vue.nextTick(() => {
-            expect(true).to.be.equal(true);
+            wrapper.vm.blocks.addBlock(0);
+            wrapper.vm.history.storeState();
+            expect(wrapper.vm.structuredContent).to.be.deep.equal(wrapper.vm.history.states[1]);
+            expect(wrapper.vm.history.states.length).to.be.equal(2);
+
+            wrapper.vm.history.undoState();
+            expect(wrapper.vm.structuredContent).to.be.deep.equal(wrapper.vm.history.states[0]);
+            expect(wrapper.vm.history.states.length).to.be.equal(2);
+
+            wrapper.vm.history.redoState();
+            expect(wrapper.vm.structuredContent).to.be.deep.equal(wrapper.vm.history.states[1]);
+            expect(wrapper.vm.history.states.length).to.be.equal(2);
+
             done();
         })
     });

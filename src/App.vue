@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor v-model="md"></md-editor>
+        <md-editor ></md-editor>
     </div>
 </template>
 
@@ -16,7 +16,7 @@
     })
 
      class App extends Vue {
-        test = "- First i**tem**\n* Secon*d* item\n+ Third item\n\n";
+        test = "Je suis un paragraphe avec chaque mise en forme **gras**, *italique*, __underline__, ~~strike~~ et code!\n\n";
         md = `# Petit éditeur Markdown
 
 Voici une formule : $f(x) = \\int_{-\\infty}^\\infty f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi$ etetete
