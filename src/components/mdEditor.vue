@@ -36,9 +36,9 @@
             <button class="MDEditor__button" @click="history.redoState()"><i class="mdi mdi-redo"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button" @click="blocks.changeBlockType('p')"><i class="mdi mdi-text-subject"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h1')"><i class="mdi mdi-format-header-1"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h2')"><i class="mdi mdi-format-header-2"/></button>
-            <button class="MDEditor__button MDEditor__button--disabled" @click="blocks.changeBlockType('h3')"><i class="mdi mdi-format-header-3"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('h1')"><i class="mdi mdi-format-header-1"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('h2')"><i class="mdi mdi-format-header-2"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('h3')"><i class="mdi mdi-format-header-3"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('b') : null"><i class="mdi mdi-format-bold"/></button>
             <button class="MDEditor__button" @click="internal.selection.content ? ui.formatSelection('i') : null"><i class="mdi mdi-format-italic"/></button>
@@ -72,13 +72,10 @@
                     v-on:beforeinput="ui.handleInput($event)"
                 >
                     <button class="MDEditor__button MDEditor__button--dragable"><i class="mdi mdi-drag-vertical"/></button>
-                    <p class="MDEditor__content"
-                       :ref="item.id"
-                       v-if="item.type === 'p'"
-                       :contenteditable="editMode"
-                       v-html="item.computed"
-                       :data-block-id="item.id"
-                    />
+                    <p class="MDEditor__content" :ref="item.id" v-if="item.type === 'p'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id"/>
+                    <h1 class="MDEditor__content" :ref="item.id" v-if="item.type === 'h1'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id" />
+                    <h2 class="MDEditor__content" :ref="item.id" v-if="item.type === 'h2'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id" />
+                    <h3 class="MDEditor__content" :ref="item.id" v-if="item.type === 'h3'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id" />
                     <ul class="MDEditor__content" :ref="item.id" v-if="item.type === 'ul'">
                         <li
                             v-for="(li, i) in item.computed"
@@ -328,9 +325,9 @@
         codec = {
             /** Block type regex pattern **/
             pattern: {
-                // h1: /\# (.*)/,                                           // # ....
-                // h2: /\#\# (.*)/,                                         // ## ....
-                // h3: /\#\#\# (.*)/,                                       // ### ....
+                h1: /^\# (.*)/,                                           // # ....
+                h2: /^\#\# (.*)/,                                         // ## ....
+                h3: /^\#\#\# (.*)/,                                       // ### ....
                 ol: /^[0-9]+\.(.*)$/,                                      // 1.....
                 ul: /^[\*\+\-] +(.*)$/,                                      // -.... or *..... or +.....
                 // table: /|(?:([^\\r\\n|]*)\\|)+\\r?\\n\\|(?:(:?-+:?)\\|)+\\r?\\n(\\|(?:([^\\r\\n|]*)\\|)+\\r?\\n)+/,
@@ -347,9 +344,9 @@
             getBlockType: (md) => {
                 let type = null;
 
-                // md.match(this.codec.pattern.h1) ? type = 'h1': null;
-                // !type && md.match(this.codec.pattern.h2) ? type = 'h2': null;
-                // !type && md.match(this.codec.pattern.h3) ? type = 'h3': null;
+                md.match(this.codec.pattern.h1) ? type = 'h1': null;
+                !type && md.match(this.codec.pattern.h2) ? type = 'h2': null;
+                !type && md.match(this.codec.pattern.h3) ? type = 'h3': null;
 
                 !type && md.match(this.codec.pattern.ul) ? type = 'ul': null;
                 !type && md.match(this.codec.pattern.ol) ? type = 'ol': null;
@@ -473,6 +470,17 @@
                         computed: this.codec.computeTo('HTML', content, layout),
                     };
                 },
+                title: (titleLevel, md) => {
+                    const content = this.codec.getContent(md);
+                    const layout = this.codec.getLayout(md);
+                    return {
+                        id: uuidv4(),
+                        type: titleLevel,
+                        content: content,
+                        layout: layout,
+                        computed: this.codec.computeTo('HTML', content, layout),
+                    };
+                },
                 list: (listType, md) => {
                     const tree = md.slice(0, -1).split('\n').map(item => listType === 'ul' ? item.substr(2): item.substr(3));
                     const content = tree.map(item => this.codec.getContent(item));
@@ -504,11 +512,18 @@
 
                     /** Fill currentBlock content if we still are in it else set currentType as null **/
                     if (currentType && currentType === 'p') {
-                        if (!md.length) {
+                         if(!md.length) {
                             previousType = currentType;
                             currentType = null;
                         }
                         else currentBlockContent += md;
+                    }
+                    else if (currentType && ['h1', 'h2', 'h3'].indexOf(currentType) !== -1) {
+                        if(!md.length) {
+                            previousType = currentType;
+                            currentType = null;
+                        }
+                        else currentBlockContent += md.substr(md.indexOf(' ') + 1);
                     }
                     else if (currentType && ['ul', 'ol'].indexOf(currentType) !== -1) {
                         if (!md.length){
@@ -522,6 +537,9 @@
                     if (!currentType) {
                         if (previousType && previousType === 'p') {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.paragraph(currentBlockContent));
+                        }
+                        else if (previousType && ['h1', 'h2', 'h3'].indexOf(previousType) !== -1) {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.title(previousType, currentBlockContent));
                         }
                         else if (previousType && ['ul', 'ol'].indexOf(previousType) !== -1) {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.list(previousType, currentBlockContent));
@@ -537,6 +555,9 @@
                 let output = '';
                 for (const block of structuredContent) {
                     if (block.type === 'p') output = output + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (block.type === 'h1') output = output + '# ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (block.type === 'h2') output = output + '## ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (block.type === 'h3') output = output + '### ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                     if (block.type === 'ul') {
                         output = output + block.content.map((item, i) => {return '- ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }

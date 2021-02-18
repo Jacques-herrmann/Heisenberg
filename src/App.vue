@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor ></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 
@@ -19,24 +19,53 @@
         test = "Je suis un paragraphe avec chaque mise en forme **gras**, *italique*, __underline__, ~~strike~~ et code!\n\n";
         md = `# Petit éditeur Markdown
 
-Voici une formule : $f(x) = \\int_{-\\infty}^\\infty f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi$ etetete
-
-et $f(x) = ax +3$
-
 ## Introduction
 
-**Markdown** est un language de balisage léger permettant de créer du texte formaté à l' aide d'un éditeur de texte brut. *John Gruber* et *Aaron Swartz* ont créé Markdown en 2004 en tant que langage de balisage qui séduit les lecteurs humains sous sa forme de code source. Markdown est largement utilisé dans les blogs , la messagerie instantanée , les forums en ligne , les logiciels collaboratifs , les pages de documentation et les fichiers README .
-Vous pouvez retrouver l'ensemble des règles de syntaxe via ce lien [Syntaxe Markdown](https://www.markdownguide.org/basic-syntax/)
+**Markdown** est un language de balisage léger permettant de créer du texte formaté à l'aide d'un éditeur de texte brut. *John Gruber* et *Aaron Swartz* ont créé Markdown en 2004 en tant que langage de balisage qui séduit les lecteurs humains sous sa forme de code source. Markdown est largement utilisé dans les blogs, la messagerie instantanée , les forums en ligne , les logiciels collaboratifs , les pages de documentation et les fichiers README .
+Vous pouvez retrouver l'ensemble des règles de syntaxe via ce lien [Syntaxe Markdown](https://www.markdownguide.org/basic-syntax/).
+
+Vous trouverez ci-dessous les éléments actuellement disponibles dans cet éditeur ainsi que les règles associées :
 
 ## Titres
 
+# Titre de niveau 1 (commence par # )
+
+### Titre de niveau 2 (commence par ## )
+
+### Titre de niveau 1 (commence par ### )
+
 ## Paragraphe
 
-## Formater le texte
+Un simple paragraphe contenant du texte. Ce texte peut être formaté de quatres façons différentes : **gras** (**), *italique* (*), __souligné__ (__) et ~~barré~~ (~~).
+
+Vous avez également la possibilité d'ajouter des formules au sein de vos paragraphes. Ces formules doivent être écrites au format Latex et entourées de caractères ($).
+
+Voici un exemple :  $f(x) = \\int_{-\\infty}^\\infty f(\\xi)\\,e^{2 \\pi i \\xi x} \\,d\\xi$
+
+Les mises en forme et formules sont également disponibles pour les blocs de type titres, citations/avertissements et listes !
+
+Les blocs aussi peuvent avoir une mise en forme particulière, il en existe 4 types (3 avertissements et une citation) :
 
 ## Citations
 
+Voici un exemple de citation, pour l'utiliser, ajoutez le caractère suivant '>', en début de paragraphe.
+
 ## Avertissements
+
+### Info
+
+!!!info
+Voici un exemple de bloc INFO, pour l'utiliser, ajoutez la ligne suivante : !!!info , avant le paragraphe
+
+### Warning
+
+!!!warning
+Voici un exemple de bloc WARNING, pour l'utiliser, ajoutez la ligne suivante : !!!warning , avant le paragraphe
+
+### Danger
+
+!!!danger
+Voici un exemple de bloc DANGER, pour l'utiliser, ajoutez la ligne suivante : !!!danger , avant le paragraphe
 
 ## Listes
 
@@ -48,6 +77,8 @@ Voici une liste ordonnée :
 4. Fourth item
 9. Fifth item
 
+N'importe quel nombre suivi d'un point et d'un espace fonctionne pour créer un élément de la liste.
+
 Et une non ordonnée :
 
 - First i**tem**
@@ -56,77 +87,21 @@ Et une non ordonnée :
 * Fourt*h ite*m
 * Fifth item
 
-## Tableau
-
-## Code
-
-## Lien
-
-## Formules
+Ici il est possible d'utiliser trois caractères différents suivi d'un espace (*, -, +).
 
 ## Images
 
 ## Vidéo
 
 
+## Ce qui ne fonctionne pas encore
 
+## Tableau
 
-!!! note
-    Si vous voyez ce message, c'est que l'éditeur est en mode démonstration. Cet éditeur est utilisable dans une application Vue via l'utilisation de
-    v-model.
+## Code
 
-## Ce qui fonctionne
-
-### Affichage des artefacts Markdown
-
-* headers (de 1 à 6)
-* paragraphes simples
-* formats admonition
-* listes non ordonnées
-* images
-* vidéos (via code HTML)
-* citations
-* Formules
-
-### Interactions utilisateur
-
-* Possibilité de modifier les headers, paragraphes, admonition, citation et listes
-* Possibilité d'utiliser la barre d'outils pour passer d'un type de format à un autre (header, paragraphe, etc.)
-* Le Markdown correspondant à l'affichage est généré X milisecondes après une modification et émis via un événement change.
-  Cela permet donc l'utilisation du composant via un v-model.
-
-## Ce qui doit être ajouté
-
-### Affichage des artefacts Markdown
-
-* Tableaux
-* formatage (liens, gras, italique, souligné, barré)
-
-### Interactions utilisateur
-
-* insérer une image
-* modifier une image
-* insérer une vidéo
-* modifier une vidéo
-* insérer une formule
-* modifier une formule
-
-
-## Exemples d'usage
-
-### Vidéo avec légende
-
-<video controls src="http://v2v.cc/~j/theora_testsuite/320x240.ogg">Texte alternatif</video>
-
-> Légende d'un média ou citation
-
-
-### Formule mathématique
-
-$f(x) = ax +3$
-
-
-        `;
+## Lien
+`;
         print(text) {
             console.log(text);
         }
