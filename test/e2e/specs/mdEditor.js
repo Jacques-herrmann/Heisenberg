@@ -465,15 +465,43 @@ describe('MDEditor.ui', () => {
         // Select Text
         editor.api.elements('@content', (blocks) => {
             browser
-                .moveTo(blocks.result.value[1].ELEMENT, 45, 0)
+                .moveTo(blocks.result.value[0].ELEMENT, 45, 0)
                 .mouseButtonDown(0)
-                .moveTo(blocks.result.value[1].ELEMENT, 100, 0)
+                .moveTo(blocks.result.value[0].ELEMENT, 100, 0)
                 .mouseButtonUp(0)
         });
         // Click on bold button
         editor.expect.element('@formatButton').to.be.present;
         editor.api.elements('@formatButton', (buttons) => {
             editor.api.elementIdClick(buttons.result.value[0].ELEMENT)
+        });
+
+        // Select Text
+        editor.api.elements('@content', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[1].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[1].ELEMENT, 100, 0)
+                .mouseButtonUp(0)
+        });
+        // Click on underline button
+        editor.expect.element('@formatButton').to.be.present;
+        editor.api.elements('@formatButton', (buttons) => {
+            editor.api.elementIdClick(buttons.result.value[2].ELEMENT)
+        });
+
+        // Select Text
+        editor.api.elements('@content', (blocks) => {
+            browser
+                .moveTo(blocks.result.value[4].ELEMENT, 45, 0)
+                .mouseButtonDown(0)
+                .moveTo(blocks.result.value[4].ELEMENT, 100, 0)
+                .mouseButtonUp(0)
+        });
+        // Click on strike button
+        editor.expect.element('@formatButton').to.be.present;
+        editor.api.elements('@formatButton', (buttons) => {
+            editor.api.elementIdClick(buttons.result.value[3].ELEMENT)
         });
 
         // Select List Text
@@ -499,12 +527,18 @@ describe('MDEditor.ui', () => {
                 browser.assert.equal(text.value, 'First Item\nSecond Item\nThird Item')
             });
         })
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, 'Hello<b> world !</b>')
+        });
         editor.api.getElementProperty('.MDEditor__md-block:nth-child(2) > .MDEditor__content', 'innerHTML' ,(html) => {
-            browser.assert.equal(html.value, 'Im a c<b>ool WY</b>SIWYG markdown Editor')
+            browser.assert.equal(html.value, 'Im a c<u>ool WY</u>SIWYG markdown Editor')
+        })
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(5) > .MDEditor__content', 'innerHTML' ,(html) => {
+            browser.assert.equal(html.value, 'End o<s>f the list</s> !')
         })
         editor.api.getElementProperty('.MDEditor__md-block:nth-child(4) > .MDEditor__content > li', 'innerHTML' ,(html) => {
             browser.assert.equal(html.value, 'F<i>irst Item</i>')
-        })
+        });
 
         // Select List Text
         editor.api.elements('@content', (blocks) => {
@@ -519,7 +553,6 @@ describe('MDEditor.ui', () => {
         editor.api.elements('@formatButton', (buttons) => {
             editor.api.elementIdClick(buttons.result.value[1].ELEMENT)
         });
-
         editor.api.getElementProperty('.MDEditor__md-block:nth-child(4) > .MDEditor__content > li', 'innerHTML' ,(html) => {
             browser.assert.equal(html.value, 'First I<i>tem</i>')
         })
@@ -662,60 +695,228 @@ describe('MDEditor.ui', () => {
 
     });
 
-    xit('should allow user to drag and drop selected text', (browser) => {
+    it('should allow user to undo and redo components states', (browser) => {
         let page = browser.page.mdEditor();
-        page.navigate().waitForElementVisible('@app', 5000);
         let editor = page.section.editor;
 
-        // Select the first block
-        editor.click('.MDEditor__content');
+        //-----------------------
+        // Adding/Remove formula
+        //-----------------------
+        // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT);
+        });
+        browser.pause(100)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(6) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'And Here is a formula f = ax + b')
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.assert.elementPresent('.katex'); // Formula present
 
-        // Write something on it
-        browser
-            .keys('Hello world !')
-            .keys(browser.Keys.ENTER)
-            .keys('Im a cool WYSIWYG markdown Editor')
-            .keys(browser.Keys.ENTER)
-            .keys('and i should allow user to switch block with arrow key');
+        //-----------------------
+        // Adding/Remove text
+        // ----------------------
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[0].ELEMENT)
+        });
+        browser.keys('A');
+        browser.pause(100);
+        // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT)
+        });
+        browser.pause(100);
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello world !')
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.pause(100);
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello world !A')
+        });
 
-        // Select Text and replace by a character
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[0].ELEMENT)
+        });
+        browser.pause(100);
+        browser.keys(browser.Keys.BACK_SPACE);
+        // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT)
+        });
+        browser.pause(100);
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello world !A')
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.pause(100);
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello world !')
+        });
+
+        //-----------------------
+        // Formatting text
+        //-----------------------
+        // Select Text
         editor.api.elements('@content', (blocks) => {
             browser
-                .moveTo(blocks.result.value[1].ELEMENT, 320, 0)
-                .pause(1000)
+                .moveTo(blocks.result.value[0].ELEMENT, 45, 0)
                 .mouseButtonDown(0)
-                .pause(1000)
-                .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
-                .pause(1000)
+                .moveTo(blocks.result.value[0].ELEMENT, 100, 0)
                 .mouseButtonUp(0)
-                .moveTo(blocks.result.value[1].ELEMENT, 300, 0)
-                .mouseButtonDown(0)
-                .pause(1000)
-                .moveTo(blocks.result.value[2].ELEMENT, 270, 100)
-                .mouseButtonUp(0)
-            // .pause(1000)
-            // .mouseButtonClick(0)
-            // .pause(1000)
-            browser.elementIdClick(blocks.result.value[2].ELEMENT)
-        })
+        });
+        // Click on bold button
+        editor.expect.element('@formatButton').to.be.present;
+        browser.pause(100);
+        editor.api.elements('@formatButton', (buttons) => {
+            editor.api.elementIdClick(buttons.result.value[0].ELEMENT)
+        });
 
-        editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 3);
-            editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Hello world !')
-            });
-            editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
-            });
-            editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
-                browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
-            });
-        })
-    })
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[0].ELEMENT)
+        });
+        // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello world !')
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Hello<b> world !</b>')
+        });
 
-    xit('should allow user to change block type', (browser) => {
+
+        //-----------------------
+        // Adding/Remove Block
+        //-----------------------
+        editor.api.elements('@removeButton', (btn) => {
+            browser.elementIdClick(btn.result.value[0].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 5);
+        });
+
+         // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 6);
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.elements('@block', (blocks) => {
+            browser.assert.equal(blocks.result.value.length, 5);
+        });
+        //-----------------------
+        // Changing Block type
+        //-----------------------
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[0].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[14].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content > li', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Im a cool WYSIWYG markdown Editor')
+        });
+
+        // Undo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[0].ELEMENT)
+        });
+        browser.pause(3000)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Im a cool WYSIWYG markdown Editor')
+        });
+        //Redo
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[1].ELEMENT)
+        });
+        browser.pause(100)
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(1) > .MDEditor__content > li', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'Im a cool WYSIWYG markdown Editor')
+        });
         browser
             .end();
     });
 
+    // xit('should allow user to drag and drop selected text', (browser) => {
+    //     let page = browser.page.mdEditor();
+    //     page.navigate().waitForElementVisible('@app', 5000);
+    //     let editor = page.section.editor;
+    //
+    //     // Select the first block
+    //     editor.click('.MDEditor__content');
+    //
+    //     // Write something on it
+    //     browser
+    //         .keys('Hello world !')
+    //         .keys(browser.Keys.ENTER)
+    //         .keys('Im a cool WYSIWYG markdown Editor')
+    //         .keys(browser.Keys.ENTER)
+    //         .keys('and i should allow user to switch block with arrow key');
+    //
+    //     // Select Text and replace by a character
+    //     editor.api.elements('@content', (blocks) => {
+    //         browser
+    //             .moveTo(blocks.result.value[1].ELEMENT, 320, 0)
+    //             .pause(1000)
+    //             .mouseButtonDown(0)
+    //             .pause(1000)
+    //             .moveTo(blocks.result.value[1].ELEMENT, 270, 0)
+    //             .pause(1000)
+    //             .mouseButtonUp(0)
+    //             .moveTo(blocks.result.value[1].ELEMENT, 300, 0)
+    //             .mouseButtonDown(0)
+    //             .pause(1000)
+    //             .moveTo(blocks.result.value[2].ELEMENT, 270, 100)
+    //             .mouseButtonUp(0)
+    //         // .pause(1000)
+    //         // .mouseButtonClick(0)
+    //         // .pause(1000)
+    //         browser.elementIdClick(blocks.result.value[2].ELEMENT)
+    //     })
+    //
+    //     editor.api.elements('@content', (blocks) => {
+    //         browser.assert.equal(blocks.result.value.length, 3);
+    //         editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'Hello world !')
+    //         });
+    //         editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown')
+    //         });
+    //         editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
+    //             browser.assert.equal(text.value, 'and i should allow user to switch block with arrow key')
+    //         });
+    //     })
+    // })
+    //
+    // xit('should allow user to change block type', (browser) => {
+    //     browser
+    //         .end();
+    // });
+    //
 });

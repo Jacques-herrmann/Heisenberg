@@ -1058,16 +1058,16 @@
                 }
             },
             undoState: () => {
-                // Ctrl Z
                 this.history.historyIndex = this.history.historyIndex - 1;
                 this.history.historyIndex = Math.max(0, this.history.historyIndex);
-                this.structuredContent.splice(0, this.structuredContent.length, ...this.history.states[this.history.historyIndex]);
+                const snapshot = JSON.parse(JSON.stringify(this.history.states[this.history.historyIndex]));
+                this.structuredContent.splice(0, this.structuredContent.length, ...snapshot);
             },
             redoState: () => {
-                // Ctrl Y
                 this.history.historyIndex = this.history.historyIndex + 1;
                 this.history.historyIndex = Math.min(this.history.states.length - 1, this.history.historyIndex);
-                this.structuredContent.splice(0, this.structuredContent.length, ...this.history.states[this.history.historyIndex]);
+                const snapshot = JSON.parse(JSON.stringify(this.history.states[this.history.historyIndex]));
+                this.structuredContent.splice(0, this.structuredContent.length, ...snapshot);
             },
         };
 
