@@ -52,7 +52,7 @@
             <button class="MDEditor__button" @click="blocks.changeBlockType('ol')"><i class="mdi mdi-format-list-numbered"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-format-quote-close"/></button>
+            <button class="MDEditor__button"><i class="mdi mdi-format-quote-close"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-note-text"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle-outline"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-alert-circle"/></button>
@@ -96,6 +96,7 @@
                             :contenteditable="editMode"
                         />
                     </ol>
+                    <blockquote class="MDEditor__content" :ref="item.id" v-if="item.type === 'quote'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id"/>
                     <button class="MDEditor__button MDEditor__button--delete" @click="blocks.deleteBlockAt(index)"><i class="mdi mdi-delete"/></button>
                 </div>
             </transition-group>
@@ -325,17 +326,17 @@
         codec = {
             /** Block type regex pattern **/
             pattern: {
-                h1: /^\# (.*)/,                                           // # ....
-                h2: /^\#\# (.*)/,                                         // ## ....
-                h3: /^\#\#\# (.*)/,                                       // ### ....
-                ol: /^[0-9]+\.(.*)$/,                                      // 1.....
+                h1: /^\# (.*)/,                                              // # ....
+                h2: /^\#\# (.*)/,                                            // ## ....
+                h3: /^\#\#\# (.*)/,                                          // ### ....
+                ol: /^[0-9]+\.(.*)$/,                                        // 1.....
                 ul: /^[\*\+\-] +(.*)$/,                                      // -.... or *..... or +.....
                 // table: /|(?:([^\\r\\n|]*)\\|)+\\r?\\n\\|(?:(:?-+:?)\\|)+\\r?\\n(\\|(?:([^\\r\\n|]*)\\|)+\\r?\\n)+/,
                 // | Syntax      | Description |
                 // | ----------- | ----------- |
                 // | Header      | Title       |
                 // | Paragraph   | Text        |
-                // quote: /(&gt;|\>)(.*)/,                                  // > ....
+                quote: /^\> (.*)/,                                          // > ....
                 // code: /```(.*?)```/,                                     // ``` ....```
                 // admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,                //
                 // image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,                    //
@@ -352,7 +353,7 @@
                 !type && md.match(this.codec.pattern.ol) ? type = 'ol': null;
                 // !type && md.match(this.codec.pattern.table) ? type = 'table': null;
                 //
-                // !type && md.match(this.codec.pattern.quote) ? type = 'quote': null;
+                !type && md.match(this.codec.pattern.quote) ? type = 'quote': null;
                 // !type && md.match(this.codec.pattern.code) ? type = 'code': null;
                 // !type && md.match(this.codec.pattern.admonition) ? type = 'admonition': null;
                 // !type && md.match(this.codec.pattern.image) ? type = 'image': null;
@@ -493,6 +494,17 @@
                         computed: tree.map(item => this.codec.computeTo('HTML', content[tree.indexOf(item)], layout[tree.indexOf(item)])),
                     }
                 },
+                quote: (md) => {
+                    const content = this.codec.getContent(md);
+                    const layout = this.codec.getLayout(md);
+                    return {
+                        id: uuidv4(),
+                        type: 'quote',
+                        content: content,
+                        layout: layout,
+                        computed: this.codec.computeTo('HTML', content, layout),
+                    }
+                },
 
             },
             encodeFromMD: (md) => {
@@ -532,6 +544,13 @@
                         }
                         else currentBlockContent += md + '\n';
                     }
+                    else if (currentType && currentType === 'quote') {
+                        if (!md.length){
+                            previousType = currentType;
+                            currentType = null;
+                        }
+                        else currentBlockContent += md.substr(2);
+                    }
 
                     /** If a new block is detected (currentType is null) add the currentBlockContent to the structuredContent **/
                     if (!currentType) {
@@ -543,6 +562,9 @@
                         }
                         else if (previousType && ['ul', 'ol'].indexOf(previousType) !== -1) {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.list(previousType, currentBlockContent));
+                        }
+                        else if (previousType && previousType === 'quote') {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.quote(currentBlockContent));
                         }
                     }
                 }
@@ -564,6 +586,7 @@
                     if (block.type === 'ol') {
                         output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }
+                    if (block.type === 'quote') output = output + '> ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                 }
                 return output;
             },

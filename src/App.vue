@@ -48,7 +48,7 @@ Les blocs aussi peuvent avoir une mise en forme particulière, il en existe 4 ty
 
 ## Citations
 
-Voici un exemple de citation, pour l'utiliser, ajoutez le caractère suivant '>', en début de paragraphe.
+> Voici un exemple de citation, pour l'utiliser, ajoutez le caractère suivant '>', en début de paragraphe.
 
 ## Avertissements
 
