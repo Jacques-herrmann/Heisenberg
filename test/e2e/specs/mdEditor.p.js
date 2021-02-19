@@ -1,7 +1,8 @@
+
 // For authoring Nightwatch tests, see
 // http://nightwatchjs.org/guide#usage
 
-describe('MDEditor.ui', () => {
+describe('MDEditor.ui.p', () => {
     beforeEach((browser) => {
         let page = browser.page.mdEditor();
         page.navigate().waitForElementVisible('@app', 5000);
@@ -61,6 +62,80 @@ describe('MDEditor.ui', () => {
         editor.expect.element('@formatButton').to.be.present;
         editor.api.elements('@formatButton', (buttons) => {
             editor.api.elementIdClick(buttons.result.value[5].ELEMENT)
+        });
+
+        // Select the last block (End of block)
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[5].ELEMENT)
+        });
+
+        // Create content for each block
+        browser
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a H1 title block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a H2 title block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a H3 title block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a quote block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a info block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a warning block")
+            .keys(browser.Keys.ENTER)
+            .keys("Here is a danger block")
+            .keys(browser.Keys.ENTER)
+
+        // Format block
+        //H1
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[6].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[3].ELEMENT)
+        });
+        // H2
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[7].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[4].ELEMENT)
+        });
+        // H3
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[8].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[5].ELEMENT)
+        });
+        // QUOTE
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[9].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[16].ELEMENT)
+        });
+        // INFO
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[10].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[17].ELEMENT)
+        });
+        // WARNING
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[11].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[18].ELEMENT)
+        });
+        // DANGER
+        editor.api.elements('@block', (blocks) => {
+            browser.elementIdClick(blocks.result.value[12].ELEMENT)
+        });
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[19].ELEMENT)
         });
     });
 
@@ -156,7 +231,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 7);
+            browser.assert.equal(blocks.result.value.length, 15);
             editor.api.elementIdText(blocks.result.value[2].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Here is a lis')
             });
@@ -193,7 +268,7 @@ describe('MDEditor.ui', () => {
 
         // Check the result
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 4);
+            browser.assert.equal(blocks.result.value.length, 12);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !Im a cool WYSIWYG markdown Editor')
             });
@@ -212,7 +287,7 @@ describe('MDEditor.ui', () => {
         });
         // Check the result
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 3);
+            browser.assert.equal(blocks.result.value.length, 11);
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Here is a listFirst ItemSecond ItemThird ItemEnd of the list !')
             });
@@ -242,7 +317,7 @@ describe('MDEditor.ui', () => {
         })
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !')
             });
@@ -356,7 +431,7 @@ describe('MDEditor.ui', () => {
         })
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 7);
+            browser.assert.equal(blocks.result.value.length, 15);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !')
             });
@@ -398,7 +473,7 @@ describe('MDEditor.ui', () => {
         })
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !')
             });
@@ -439,7 +514,7 @@ describe('MDEditor.ui', () => {
                 .keys(browser.Keys.BACK_SPACE).pause(2000)
         })
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !')
             });
@@ -519,7 +594,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Im a cool WYSIWYG markdown Editor')
             });
@@ -586,7 +661,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 7);
+            browser.assert.equal(blocks.result.value.length, 15);
             editor.api.elementIdText(blocks.result.value[1].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Im a cool W')
             });
@@ -634,7 +709,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[3].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'First I\ntem\nSecond Item\nThird Item')
             });
@@ -665,7 +740,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[0].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'Hello world !')
             });
@@ -684,7 +759,7 @@ describe('MDEditor.ui', () => {
         });
 
         editor.api.elements('@content', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
             editor.api.elementIdText(blocks.result.value[3].ELEMENT, (text) => {
                 browser.assert.equal(text.value, 'First ItemSecond ItemThird Item')
             });
@@ -698,6 +773,12 @@ describe('MDEditor.ui', () => {
     it('should allow user to undo and redo components states', (browser) => {
         let page = browser.page.mdEditor();
         let editor = page.section.editor;
+        // Select Formula
+        browser.click('.katex')
+        // Click on Formula button
+        editor.api.elements('@controls', (button) => {
+            browser.elementIdClick(button.result.value[11].ELEMENT)
+        });
 
         //-----------------------
         // Adding/Remove formula
@@ -707,14 +788,15 @@ describe('MDEditor.ui', () => {
             browser.elementIdClick(button.result.value[0].ELEMENT);
         });
         browser.pause(100)
-        editor.api.getElementProperty('.MDEditor__md-block:nth-child(6) > .MDEditor__content ', 'innerHTML' , (html) => {
-            browser.assert.equal(html.value, 'And Here is a formula f = ax + b')
-        });
+        browser.assert.elementPresent('.katex'); // Formula present
+
         //Redo
         editor.api.elements('@controls', (button) => {
             browser.elementIdClick(button.result.value[1].ELEMENT)
         });
-        browser.assert.elementPresent('.katex'); // Formula present
+        editor.api.getElementProperty('.MDEditor__md-block:nth-child(6) > .MDEditor__content ', 'innerHTML' , (html) => {
+            browser.assert.equal(html.value, 'And Here is a formula f = ax + b ')
+        });
 
         //-----------------------
         // Adding/Remove text
@@ -810,7 +892,7 @@ describe('MDEditor.ui', () => {
         });
         browser.pause(100)
         editor.api.elements('@block', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 5);
+            browser.assert.equal(blocks.result.value.length, 13);
         });
 
          // Undo
@@ -819,7 +901,7 @@ describe('MDEditor.ui', () => {
         });
         browser.pause(100)
         editor.api.elements('@block', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 6);
+            browser.assert.equal(blocks.result.value.length, 14);
         });
         //Redo
         editor.api.elements('@controls', (button) => {
@@ -827,7 +909,7 @@ describe('MDEditor.ui', () => {
         });
         browser.pause(100)
         editor.api.elements('@block', (blocks) => {
-            browser.assert.equal(blocks.result.value.length, 5);
+            browser.assert.equal(blocks.result.value.length, 13);
         });
         //-----------------------
         // Changing Block type
