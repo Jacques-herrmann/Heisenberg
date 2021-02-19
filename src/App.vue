@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor v-model="md"></md-editor>
+        <md-editor v-model="test"></md-editor>
     </div>
 </template>
 
@@ -16,7 +16,7 @@
     })
 
      class App extends Vue {
-        test = "Je suis un paragraphe avec chaque mise en forme **gras**, *italique*, __underline__, ~~strike~~ et code!\n\n";
+        test = "!!! info\nJe suis un paragraphe de type info\n\n";
         md = `# Petit éditeur Markdown
 
 ## Introduction
@@ -92,7 +92,6 @@ Ici il est possible d'utiliser trois caractères différents suivi d'un espace (
 ## Images
 
 ## Vidéo
-
 
 ## Ce qui ne fonctionne pas encore
 
