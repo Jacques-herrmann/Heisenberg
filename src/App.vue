@@ -16,7 +16,7 @@
     })
 
      class App extends Vue {
-        test = "!!! info\nJe suis un paragraphe de type info\n\n";
+        test = "!!! info\nJe suis un paragraphe de type info\n\n!!! warning\nJe suis un paragraphe de type warning\n\n!!! danger\nJe suis un paragraphe de type danger\n\n";
         md = `# Petit éditeur Markdown
 
 ## Introduction

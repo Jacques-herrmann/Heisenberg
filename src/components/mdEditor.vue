@@ -806,7 +806,7 @@
                         this.$refs[this.structuredContent[this.internal.currentItemIndex + 1].id][0] : null;
 
                     // Case current block is list Item
-                    if (target.dataset['itemIndex']) {
+                    if (target.dataset['itemIndex'] && parseInt(target.dataset['itemIndex']) !== -1) {
                         itemIndex = parseInt(target.dataset['itemIndex']);
                         if (itemIndex) precedentBlock = currentBlock.childNodes[itemIndex - 1];
                         if (itemIndex !== currentBlock.childNodes.length - 1) nextBlock = currentBlock.childNodes[itemIndex + 1];
