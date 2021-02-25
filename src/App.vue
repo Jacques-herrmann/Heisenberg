@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <md-editor></md-editor>
+        <md-editor v-model="md"></md-editor>
     </div>
 </template>
 

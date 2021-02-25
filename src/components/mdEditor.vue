@@ -56,9 +56,9 @@
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button" @click="blocks.changeBlockType('blockquote')"><i class="mdi mdi-format-quote-close"/></button>
-            <button class="MDEditor__button" @click="blocks.changeBlockType('info')"><i class="mdi mdi-note-text"/></button>
-            <button class="MDEditor__button" @click="blocks.changeBlockType('warning')"><i class="mdi mdi-alert-circle-outline"/></button>
-            <button class="MDEditor__button" @click="blocks.changeBlockType('danger')"><i class="mdi mdi-alert-circle"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('info')"><i class="mdi mdi-information-outline"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('warning')"><i class="mdi mdi-alert-outline"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('danger')"><i class="mdi mdi-alert"/></button>
             <div class="MDEditor__controls-divider"></div>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-image"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-video"/></button>
@@ -103,7 +103,11 @@
                     <div v-if="['info', 'warning', 'danger'].indexOf(item.type) !== -1"
                          :class="'MDEditor__content MDEditor__admonition MDEditor__admonition--' + item.type"
                     >
-                        <div class="MDEditor__admonition-title"><i class="mdi mdi-note-text"/>{{ item.type }}</div>
+                        <div class="MDEditor__admonition-title"><i :class="'mdi ' +
+                         (item.type === 'info' ? 'mdi-information-outline' : '') +
+                         (item.type === 'warning' ? 'mdi-alert-outline' : '') +
+                         (item.type === 'danger' ? 'mdi-alert' : '')"
+                        />{{ item.type }}</div>
                         <p :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id" :data-item-index="-1"
                          :ref="item.id"/>
                     </div>
@@ -1211,7 +1215,7 @@
     }
 </script>
 <style lang="stylus">
-/*@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');*/
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css');
 resetButton()
     background transparent
@@ -1220,6 +1224,7 @@ resetButton()
 
 *
     font-family "Rubik"
+    color #333
 .katex *
     white-space nowrap !important
 .MDEditor
@@ -1363,17 +1368,31 @@ resetButton()
         padding 8px
         margin 0
 
+    & blockquote
+        border-left 4px solid grey
+        padding 5px 10px
+        font-style italic
+        color #606060
+
     &__admonition
-        color white
+        /*color white*/
+        padding 10px
+        border-radius 4px
+        display flex
+        flex-direction column
         & > div:first-child
             text-transform uppercase
             font-weight bold
+            height 35px
+            & > i
+                display inline-block
+                width 20px
         &--info
-            background-color blue
+            background-color #81C4FF
         &--warning
-            background-color orange
+            background-color #FFBE81
         &--danger
-            background-color red
+            background-color #FF8B81
 
     &__formula {
         display inline-block
