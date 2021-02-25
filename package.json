@@ -1,7 +1,7 @@
 {
   "name": "Heisenberg",
   "version": "1.0.0",
-  "description": "A cool Markdown WYSIWYG editor",
+  "description": "A Markdown WYSIWYG editor",
   "author": "Jacques HERRMANN",
   "scripts": {
     "dev": "webpack serve --hot",

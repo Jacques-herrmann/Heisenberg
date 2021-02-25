@@ -1214,6 +1214,7 @@
         }
     }
 </script>
+
 <style lang="stylus">
 @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/katex@0.12.0/dist/katex.min.css');
@@ -1246,8 +1247,9 @@ resetButton()
             resetButton()
             height 36px
             width 30px
-            color #EEE
             cursor pointer
+            & > i
+                color #EEE
             &:hover
                 background-color #444
             &:nth-child(2)
@@ -1359,6 +1361,7 @@ resetButton()
     & *
         outline none
         white-space pre-wrap
+        text-align justify
 
 
     /** Content type style **/
@@ -1377,6 +1380,7 @@ resetButton()
     &__admonition
         /*color white*/
         padding 10px
+        margin 20px 0
         border-radius 4px
         display flex
         flex-direction column
