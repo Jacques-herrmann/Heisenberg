@@ -1,6 +1,6 @@
 # Heisenberg
 
-A Markdown WYSIWYG Editor (Vue component)
+A Markdown WYSIWYG Editor prototype (Vue component)
 
 ## Available Scripts
 
