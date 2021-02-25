@@ -55,7 +55,7 @@
             <button class="MDEditor__button" @click="blocks.changeBlockType('ol')"><i class="mdi mdi-format-list-numbered"/></button>
             <button class="MDEditor__button MDEditor__button--disabled"><i class="mdi mdi-table"/></button>
             <div class="MDEditor__controls-divider"></div>
-            <button class="MDEditor__button" @click="blocks.changeBlockType('quote')"><i class="mdi mdi-format-quote-close"/></button>
+            <button class="MDEditor__button" @click="blocks.changeBlockType('blockquote')"><i class="mdi mdi-format-quote-close"/></button>
             <button class="MDEditor__button" @click="blocks.changeBlockType('info')"><i class="mdi mdi-note-text"/></button>
             <button class="MDEditor__button" @click="blocks.changeBlockType('warning')"><i class="mdi mdi-alert-circle-outline"/></button>
             <button class="MDEditor__button" @click="blocks.changeBlockType('danger')"><i class="mdi mdi-alert-circle"/></button>
@@ -99,7 +99,7 @@
                             :contenteditable="editMode"
                         />
                     </ol>
-                    <blockquote class="MDEditor__content" :ref="item.id" v-if="item.type === 'quote'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id"/>
+                    <blockquote class="MDEditor__content" :ref="item.id" v-if="item.type === 'blockquote'" :contenteditable="editMode" v-html="item.computed" :data-block-id="item.id"/>
                     <div v-if="['info', 'warning', 'danger'].indexOf(item.type) !== -1"
                          :class="'MDEditor__content MDEditor__admonition MDEditor__admonition--' + item.type"
                     >
@@ -346,7 +346,7 @@
                 // | ----------- | ----------- |
                 // | Header      | Title       |
                 // | Paragraph   | Text        |
-                quote: /^\> (.*)/,                                          // > ....
+                blockquote: /^\> (.*)/,                                          // > ....
                 // code: /```(.*?)```/,                                     // ``` ....```
                 admonition: /(\!\!\! )([^ ]*) ?([^\n]*)/,                   //
                 // image: /\!\[([^[\]]*)\]\(([^\n]*)\)/,                    //
@@ -363,7 +363,7 @@
                 !type && md.match(this.codec.pattern.ol) ? type = 'ol': null;
                 // !type && md.match(this.codec.pattern.table) ? type = 'table': null;
                 //
-                !type && md.match(this.codec.pattern.quote) ? type = 'quote': null;
+                !type && md.match(this.codec.pattern.blockquote) ? type = 'blockquote': null;
                 // !type && md.match(this.codec.pattern.code) ? type = 'code': null;
                 !type && md.match(this.codec.pattern.admonition) ? type = 'admonition': null;
                 // !type && md.match(this.codec.pattern.image) ? type = 'image': null;
@@ -504,12 +504,12 @@
                         computed: tree.map(item => this.codec.computeTo('HTML', content[tree.indexOf(item)], layout[tree.indexOf(item)])),
                     }
                 },
-                quote: (md) => {
+                blockquote: (md) => {
                     const content = this.codec.getContent(md);
                     const layout = this.codec.getLayout(md);
                     return {
                         id: uuidv4(),
-                        type: 'quote',
+                        type: 'blockquote',
                         content: content,
                         layout: layout,
                         computed: this.codec.computeTo('HTML', content, layout),
@@ -567,7 +567,7 @@
                         }
                         else currentBlockContent += md + '\n';
                     }
-                    else if (currentType && currentType === 'quote') {
+                    else if (currentType && currentType === 'blockquote') {
                         if (!md.length){
                             previousType = currentType;
                             currentType = null;
@@ -598,8 +598,8 @@
                         else if (previousType && ['ul', 'ol'].indexOf(previousType) !== -1) {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.list(previousType, currentBlockContent));
                         }
-                        else if (previousType && previousType === 'quote') {
-                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.quote(currentBlockContent));
+                        else if (previousType && previousType === 'blockquote') {
+                            structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.blockquote(currentBlockContent));
                         }
                         else if (previousType && previousType === 'admonition') {
                             structuredContent.splice(structuredContent.length, 0, this.codec.parseBlock.admonition(currentBlockContent));
@@ -624,7 +624,7 @@
                     if (block.type === 'ol') {
                         output = output + block.content.map((item, i) => {return (i + 1).toString() + '. ' + this.codec.computeTo('MD', item, block.layout[i])}).join('\n') + '\n\n';
                     }
-                    if (block.type === 'quote') output = output + '> ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
+                    if (block.type === 'blockquote') output = output + '> ' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                     if (['info', 'warning', 'danger'].indexOf(block.type) !== -1) output = output + '!!! ' + block.type + '\n' + this.codec.computeTo('MD', block.content, block.layout) + '\n\n';
                 }
                 return output;
@@ -682,6 +682,9 @@
                             break;
                         case 'insertFromDrop':
                             this.ui.behaviors.onDropSelection(event);
+                            break;
+                        case 'insertFromPaste':
+                            this.importing.onPaste(event);
                             break;
                         default:
                             this.ui.behaviors.onUnHandle();
@@ -1095,9 +1098,46 @@
          * Everything about importing content, media, formatted text (Work, HTML)
          **/
         importing = {
-            onPaste: () => {},
+            onPaste: (ev) => {
+                let template = document.createElement('template');
+                template.innerHTML = ev.dataTransfer.getData('text/html');
+                console.log(template);
+                let tags = Array.from(template.content.childNodes).filter((tag) => {
+                    return ['DIV', 'PRE', 'P', 'OL', 'UL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE'].indexOf(tag.nodeName) !== -1
+                });
+                tags.forEach((tag, t) => {
+                    let deleteCount = t ? 0 : 1;
+                    const newBlock = this.importing.htmlToMD(tag);
+                    this.structuredContent.splice(this.internal.currentItemIndex, deleteCount, this.blocks.computeBlock(newBlock));
+                    this.internal.currentItemIndex += 1;
+                })
+            },
             wordToMD: () => {},
-            htmlToMD: () => {},
+            htmlToMD: (tag) => {
+                let type = tag.nodeName.toLowerCase();
+                if (['div', 'pre'].indexOf(type) !== -1) type = 'p';
+                let content = tag.textContent.replace('\n', ' ');
+                // Layout
+                let layout = Array(content.length).fill('-');
+                const bold = Array.from(tag.getElementsByTagName('b'));
+                const italic = Array.from(tag.getElementsByTagName('i'));
+                const underline = Array.from(tag.getElementsByTagName('u'));
+                const strike = Array.from(tag.getElementsByTagName('s'));
+                const emphasisTags = bold.concat(italic, underline, strike);
+                for (let t = 0; t < emphasisTags.length; t ++) {
+                    const tag = emphasisTags[t];
+                    const index = content.indexOf(tag.textContent);
+                    for(let i = index; i < index + tag.textContent.length; i++) layout.splice(i, 1, tag.tagName.toLowerCase());
+                }
+
+                return {
+                    id: uuidv4(),
+                    type: type,
+                    content: content,
+                    layout: layout,
+                    computed: ''
+                }
+            },
             importMedia: () => {},
         };
 

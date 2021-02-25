@@ -56,7 +56,7 @@ const H3 = ["### Je suis un titre de niveau 3\n\n", {
 }];
 
 const QUOTE = ["> Je suis un paragraphe de type citation\n\n", {
-    type: 'quote',
+    type: 'blockquote',
     content: 'Je suis un paragraphe de type citation',
     layout: ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', "-", "-", "-", "-", "-", //*15
              "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-",
@@ -156,7 +156,7 @@ const FULL_MD = ["Petit éditeur **WYSIWYG**\n\n" +
         computed: 'Je suis un titre de niveau 3'
     },
     {
-        type: 'quote',
+        type: 'blockquote',
         content: 'Je suis un paragraphe de type citation',
         layout: ['-', '-', '-', '-', '-', '-', '-', '-', '-', '-', "-", "-", "-", "-", "-", //*15
                  "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-",
